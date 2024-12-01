@@ -3,20 +3,27 @@ const { prisma } = require('../prisma/prisma-client');
 const PostController = {
   createPost: async (req, res) => {
     const { content } = req.body;
-
     const authorId = req.user.userId;
 
     if (!content) {
-      return res.status(400).json({ error: 'Все поля обязательны' });
+      return res.status(400).json({ error: 'Текст поста обязателен' });
+    }
+
+    let filepath;
+    if (req.file && req.file.path) {
+      filepath = req.file.path;
     }
 
     try {
       const createdPost = await prisma.post.create({
         data: {
           content,
+          imageUrl: filepath ? `/${filepath}` : undefined,
           authorId,
         },
       });
+
+      console.log(createdPost);
 
       res.json(createdPost);
     } catch (error) {
@@ -26,7 +33,7 @@ const PostController = {
   },
   getAllPosts: async (req, res) => {
     const userId = req.user.userId;
-
+    const { skip = 0, take = 10 } = req.query;
     try {
       const posts = await prisma.post.findMany({
         include: {
@@ -37,6 +44,8 @@ const PostController = {
         orderBy: {
           createdAt: 'desc',
         },
+        skip: Number(skip),
+        take: Number(take),
       });
 
       const postWithLikeInfo = posts.map((post) => ({
