@@ -114,6 +114,7 @@ const UserController = {
     if (req.file && req.file.path) {
       filepath = req.file.path;
     }
+    console.log(file?.path);
 
     if (id !== userId) {
       return res.status(403).json({ error: 'Forbidden' });

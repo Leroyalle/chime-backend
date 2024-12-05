@@ -15,6 +15,9 @@ const CommentController = {
           postId,
           userId,
         },
+        include: {
+          user: true,
+        },
       });
 
       res.json(comment);

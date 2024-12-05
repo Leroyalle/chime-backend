@@ -44,6 +44,8 @@ model Post {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
   content  String
+  imageUrl String?
+
   author   User   @relation(fields: [authorId], references: [id])
   authorId String @db.ObjectId
 
@@ -73,4 +75,7 @@ model Comment {
 
   post   Post   @relation(fields: [postId], references: [id])
   postId String @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

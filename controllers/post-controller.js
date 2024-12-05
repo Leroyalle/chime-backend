@@ -3,20 +3,27 @@ const { prisma } = require('../prisma/prisma-client');
 const PostController = {
   createPost: async (req, res) => {
     const { content } = req.body;
-
     const authorId = req.user.userId;
 
     if (!content) {
-      return res.status(400).json({ error: 'Все поля обязательны' });
+      return res.status(400).json({ error: 'Текст поста обязателен' });
+    }
+
+    let filepath;
+    if (req.file && req.file.path) {
+      filepath = req.file.path;
     }
 
     try {
       const createdPost = await prisma.post.create({
         data: {
           content,
+          imageUrl: filepath ? `/${filepath}` : undefined,
           authorId,
         },
       });
+
+      console.log(createdPost);
 
       res.json(createdPost);
     } catch (error) {
@@ -26,7 +33,8 @@ const PostController = {
   },
   getAllPosts: async (req, res) => {
     const userId = req.user.userId;
-
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.perPage) || 10;
     try {
       const posts = await prisma.post.findMany({
         include: {
@@ -37,6 +45,8 @@ const PostController = {
         orderBy: {
           createdAt: 'desc',
         },
+        skip: Number((page - 1) * perPage),
+        take: Number(perPage),
       });
 
       const postWithLikeInfo = posts.map((post) => ({
@@ -44,7 +54,14 @@ const PostController = {
         isLiked: post.likes.some((like) => like.userId === userId),
       }));
 
-      res.json(postWithLikeInfo);
+      const totalPosts = await prisma.post.count();
+      const totalPages = Math.ceil(totalPosts / perPage);
+
+      res.json({
+        data: postWithLikeInfo,
+        currentPage: page,
+        totalPages: totalPages,
+      });
     } catch (error) {
       console.log('Error [GET_ALL_POSTS]', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -65,6 +82,9 @@ const PostController = {
           comments: {
             include: {
               user: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
             },
           },
         },
