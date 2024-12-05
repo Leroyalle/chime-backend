@@ -15,11 +15,6 @@ const PostController = {
       return res.status(400).json({ error: 'Текст поста обязателен' });
     }
 
-    let filepath;
-    if (req.file && req.file.path) {
-      filepath = req.file.path;
-    }
-
     try {
       const createdPost = await prisma.post.create({
         data: {
