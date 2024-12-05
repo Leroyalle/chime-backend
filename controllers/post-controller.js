@@ -12,6 +12,12 @@ const PostController = {
     let filepath;
     if (req.file && req.file.path) {
       filepath = req.file.path;
+      return res.status(400).json({ error: 'Текст поста обязателен' });
+    }
+
+    let filepath;
+    if (req.file && req.file.path) {
+      filepath = req.file.path;
     }
 
     try {
@@ -19,9 +25,12 @@ const PostController = {
         data: {
           content,
           imageUrl: filepath ? `/${filepath}` : undefined,
+          imageUrl: filepath ? `/${filepath}` : undefined,
           authorId,
         },
       });
+
+      console.log(createdPost);
 
       console.log(createdPost);
 
