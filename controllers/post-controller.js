@@ -20,15 +20,9 @@ const PostController = {
         data: {
           content,
           imageUrl: filepath ? `/${filepath}` : undefined,
-          imageUrl: filepath ? `/${filepath}` : undefined,
           authorId,
         },
       });
-
-      console.log(createdPost);
-
-      console.log(createdPost);
-
       res.json(createdPost);
     } catch (error) {
       console.log('Error [CREATE_POST]', error);
