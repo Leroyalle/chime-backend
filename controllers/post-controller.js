@@ -4,6 +4,7 @@ const PostController = {
   createPost: async (req, res) => {
     const { content } = req.body;
     const authorId = req.user.userId;
+    console.log(req.body);
 
     if (!content) {
       return res.status(400).json({ error: 'Текст поста обязателен' });
@@ -50,6 +51,8 @@ const PostController = {
       const postWithLikeInfo = posts.map((post) => ({
         ...post,
         isLiked: post.likes.some((like) => like.userId === userId),
+        likesCount: post.likes.length,
+        commentsCount: post.comments.length,
       }));
 
       const totalPosts = await prisma.post.count();
