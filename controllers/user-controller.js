@@ -1,9 +1,9 @@
-const { prisma } = require('../prisma/prisma-client');
 const bcrypt = require('bcryptjs');
 const Jdenticon = require('jdenticon');
 const path = require('path');
 const fs = require('fs');
-const jwt = require('jsonwebtoken');
+const { prisma } = require('../prisma/prisma-client');
+const { generateTokens } = require('../utils');
 
 const UserController = {
   register: async (req, res) => {
@@ -68,9 +68,8 @@ const UserController = {
         return res.status(400).json({ error: 'Неверный логин или пароль' });
       }
 
-      const token = jwt.sign({ userId: findUser.id }, process.env.SECRET_KEY);
-
-      res.json({ token });
+      const { accessToken, refreshToken } = await generateTokens(findUser);
+      res.json({ accessToken, refreshToken });
     } catch (error) {
       console.log('Error [LOGIN_USER]', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -114,7 +113,6 @@ const UserController = {
     if (req.file && req.file.path) {
       filepath = req.file.path;
     }
-    console.log(file?.path);
 
     if (id !== userId) {
       return res.status(403).json({ error: 'Forbidden' });

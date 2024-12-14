@@ -7,6 +7,7 @@ const {
   CommentController,
   LikeController,
   FollowController,
+  RefreshController,
 } = require('../controllers');
 
 const authenticateToken = require('../middleware/auth');
@@ -47,5 +48,8 @@ router.delete('/likes/:id', authenticateToken, LikeController.unlikePost);
 router.post('/follow', authenticateToken, FollowController.followUser);
 router.delete('/follow/:id', authenticateToken, FollowController.unFollowUser);
 // FIXME: unFollow to follow
+
+// refresh
+router.post('/refresh', RefreshController.refresh);
 
 module.exports = router;

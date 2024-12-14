@@ -3,6 +3,7 @@ const PostController = require('./post-controller');
 const CommentController = require('./comment-controller');
 const LikeController = require('./like-controller');
 const FollowController = require('./follow-controller');
+const RefreshController = require('./refresh-controller');
 
 module.exports = {
   UserController,
@@ -10,4 +11,5 @@ module.exports = {
   CommentController,
   LikeController,
   FollowController,
+  RefreshController,
 };
