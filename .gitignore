@@ -1,0 +1,6 @@
+node_modules
+dist
+# /uploads/*
+# !/uploads/.keep
+# Keep environment variables out of version control
+

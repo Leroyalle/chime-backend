@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model VerificationCode {
+  id        Int       @id @default(autoincrement())
+  code      String
+  expiresAt DateTime
+  userId    Int
+  user      EmailUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model UserBase {
+  id        Int      @id @default(autoincrement())
+  banned    Boolean  @default(false)
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  EmailUser    EmailUser?
+  TelegramUser TelegramUser?
+  GoogleUser   GoogleUser?
+
+  posts       Post[]
+  likes       Like[]
+  comments    Comment[]
+  followers   Follows[] @relation("following")
+  following   Follows[] @relation("follower")
+}
+
+model EmailUser {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  password String?
+
+  userBaseId Int      @unique
+  userBase   UserBase @relation(fields: [userBaseId], references: [id])
+
+  VerificationCode VerificationCode[]
+}
+
+model TelegramUser {
+  id         Int    @id @default(autoincrement())
+  telegramId String @unique
+
+  firstName String
+  username  String
+  photoUrl  String
+  authDate  DateTime
+
+  userBaseId Int      @unique
+  userBase   UserBase @relation(fields: [userBaseId], references: [id])
+}
+
+model GoogleUser {
+  id    Int    @id @default(autoincrement())
+  email String @unique
+
+  name      String
+  givenName String
+
+  photoUrl String
+
+  userBaseId Int      @unique
+  userBase   UserBase @relation(fields: [userBaseId], references: [id])
+}
+
+model Post {
+  id       Int      @id @default(autoincrement())
+  content  String
+  imageUrl String?
+
+  authorId Int
+  author   UserBase @relation(fields: [authorId], references: [id])
+
+  likes    Like[]
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Like {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  user     UserBase @relation(fields: [userId], references: [id])
+
+  postId   Int
+  post     Post     @relation(fields: [postId], references: [id])
+}
+
+model Comment {
+  id       Int      @id @default(autoincrement())
+  content  String
+
+  userId   Int
+  user     UserBase @relation(fields: [userId], references: [id])
+
+  postId   Int
+  post     Post     @relation(fields: [postId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Follows {
+  id           Int      @id @default(autoincrement())
+  followerId   Int
+  follower     UserBase @relation("follower", fields: [followerId], references: [id])
+
+  followingId  Int
+  following    UserBase @relation("following", fields: [followingId], references: [id])
+}
