@@ -1,23 +1,32 @@
 import { BadGatewayException, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
+import { PostService } from 'src/post/post.service';
 
 @Injectable()
 export class LikeService {
   protected likeDb: DatabaseService['like']
 
   constructor(
-    private readonly databaseService: DatabaseService
+    private readonly databaseService: DatabaseService,
+    private readonly postService: PostService
   ) {
     this.likeDb = databaseService.like;
   }
 
   async like(postId: number, userId: number) {
     const existingLike = await this.findLike(postId, userId)
-    if (existingLike) return new BadGatewayException(`Already associated with ${postId}`)
+    const existingPost = await this.postService.findById(postId)
 
-    return await this.likeDb.create({
+    if (existingLike) return new BadGatewayException(`Already associated with ${postId}`)
+    if (!existingPost) return new BadGatewayException(`Post with ID ${postId} not found`)
+
+
+    console.log(postId, userId)
+    const like = await this.likeDb.create({
       data: { postId, userId },
     })
+
+    console.log(like)
   }
 
   async unlike(postId: number, userId: number) {

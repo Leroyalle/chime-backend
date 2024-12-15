@@ -117,5 +117,12 @@ export class PostService {
   }
 
 
+  async findById(id: number) {
+    return await this.postDb.findUnique({
+      where: { id }
+    })
+  }
+
+
 
 }

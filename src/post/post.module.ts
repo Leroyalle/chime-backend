@@ -7,5 +7,6 @@ import { DatabaseModule } from 'src/database/database.module';
   imports: [DatabaseModule],
   controllers: [PostController],
   providers: [PostService],
+  exports: [PostService]
 })
-export class PostModule {}
+export class PostModule { }
