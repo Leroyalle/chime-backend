@@ -11,15 +11,14 @@ export class LikeController {
   constructor(private readonly likeService: LikeService) { }
 
   @Post()
-  likePost(@Body("postId") postId: number, @UserId() userId: string, @Req() req) {
-    // console.log(req.user)
+  likePost(@Body("postId") postId:string, @UserId() userId: string) {
     if(!postId) return new BadGatewayException("postId must exists")
 
-    return this.likeService.like(postId, +userId);
+    return this.likeService.like(postId, userId);
   }
 
   @Delete(':id')
   remove(@Param('id') postId: string, @UserId() userId: string) {
-    return this.likeService.unlike(+postId, +userId);
+    return this.likeService.unlike(postId, userId);
   }
 }

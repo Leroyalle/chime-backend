@@ -14,7 +14,7 @@ export class FollowService {
   }
 
 
-  async follow(followingId: number, userId: number) {
+  async follow(followingId: string, userId: string) {
 
     if (followingId == userId) return new BadGatewayException("You cannot follow yourself")
 
@@ -32,7 +32,7 @@ export class FollowService {
     return { message: `Followed successfully on UserBase ${followingId} ` }
   }
 
-  async unFollow(unFollowingId: number, userId: number) {
+  async unFollow(unFollowingId: string, userId: string) {
     if (unFollowingId == userId) return new BadGatewayException("You don't have a follow on yourself")
 
     const existingFollow = await this.findFollow(userId, unFollowingId)
@@ -50,7 +50,7 @@ export class FollowService {
   }
 
 
-  async findFollow(followerId: number, followingId: number) {
+  async findFollow(followerId: string, followingId: string) {
     return await this.followDb.findFirst({
       where: { followerId, followingId },
     });

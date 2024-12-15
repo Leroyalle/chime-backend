@@ -41,7 +41,7 @@ export class AdminUsersController {
 
 
   @Get("/:id")
-  async getUserDetailedInfo(@Param("id") id: number) {
+  async getUserDetailedInfo(@Param("id") id: string) {
     console.log(id)
     return await this.usersService.findUserById(id)
   }

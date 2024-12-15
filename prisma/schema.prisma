@@ -8,17 +8,17 @@ datasource db {
 }
 
 model VerificationCode {
-  id        Int       @id @default(autoincrement())
+  id        String    @id @default(uuid())
   code      String
   expiresAt DateTime
-  userId    Int
+  userId    String
   user      EmailUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
 
 model UserBase {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   banned    Boolean  @default(false)
   role      String   @default("user")
   createdAt DateTime @default(now())
@@ -28,57 +28,57 @@ model UserBase {
   TelegramUser TelegramUser?
   GoogleUser   GoogleUser?
 
-  posts       Post[]
-  likes       Like[]
-  comments    Comment[]
-  
-  followers   Follows[] @relation("following")
-  following   Follows[] @relation("follower")
+  posts    Post[]
+  likes    Like[]
+  comments Comment[]
+
+  followers Follows[] @relation("following")
+  following Follows[] @relation("follower")
 }
 
 model EmailUser {
-  id       Int     @id @default(autoincrement())
+  id       String  @id @default(uuid())
   email    String  @unique
   password String?
 
-  userBaseId Int      @unique
+  userBaseId String   @unique
   userBase   UserBase @relation(fields: [userBaseId], references: [id])
 
   VerificationCode VerificationCode[]
 }
 
 model TelegramUser {
-  id         Int    @id @default(autoincrement())
-  telegramId String @unique
+  id         String  @id @default(uuid())
+  telegramId String  @unique
 
   firstName String
   username  String
   photoUrl  String
   authDate  DateTime
 
-  userBaseId Int      @unique
+  userBaseId String   @unique
   userBase   UserBase @relation(fields: [userBaseId], references: [id])
 }
 
 model GoogleUser {
-  id    Int    @id @default(autoincrement())
-  email String @unique
+  id    String  @id @default(uuid())
+  email String  @unique
 
   name      String
   givenName String
 
   photoUrl String
 
-  userBaseId Int      @unique
+  userBaseId String   @unique
   userBase   UserBase @relation(fields: [userBaseId], references: [id])
 }
 
 model Post {
-  id       Int      @id @default(autoincrement())
+  id       String   @id @default(uuid())
   content  String
   imageUrl String?
 
-  authorId Int
+  authorId String
   author   UserBase @relation(fields: [authorId], references: [id])
 
   likes    Like[]
@@ -88,33 +88,33 @@ model Post {
 }
 
 model Like {
-  id       Int      @id @default(autoincrement())
-  userId   Int
-  user     UserBase @relation(fields: [userId], references: [id])
+  id     String   @id @default(uuid())
+  userId String
+  user   UserBase @relation(fields: [userId], references: [id])
 
-  postId   Int
-  post     Post     @relation(fields: [postId], references: [id])
+  postId String
+  post   Post @relation(fields: [postId], references: [id])
 }
 
 model Comment {
-  id       Int      @id @default(autoincrement())
-  content  String
+  id      String   @id @default(uuid())
+  content String
 
-  userId   Int
-  user     UserBase @relation(fields: [userId], references: [id])
+  userId String
+  user   UserBase @relation(fields: [userId], references: [id])
 
-  postId   Int
-  post     Post     @relation(fields: [postId], references: [id])
+  postId String
+  post   Post @relation(fields: [postId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Follows {
-  id           Int      @id @default(autoincrement())
-  followerId   Int
-  follower     UserBase @relation("follower", fields: [followerId], references: [id])
+  id         String   @id @default(uuid())
+  followerId String
+  follower   UserBase @relation("follower", fields: [followerId], references: [id])
 
-  followingId  Int
-  following    UserBase @relation("following", fields: [followingId], references: [id])
+  followingId String
+  following   UserBase @relation("following", fields: [followingId], references: [id])
 }

@@ -24,7 +24,7 @@ export class CommentController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.commentService.findOne(+id);
+    return this.commentService.findOne(id);
   }
 
   @Patch(':id')
@@ -34,6 +34,6 @@ export class CommentController {
 
   @Delete(':id')
   remove(@Param('id') postId: string, @UserId() userId: string) {
-    return this.commentService.delete(+postId, +userId);
+    return this.commentService.delete(postId, userId);
   }
 }

@@ -11,10 +11,10 @@ export class FollowController {
   constructor(private readonly followService: FollowService) { }
 
   @Post()
-  follow(@Body('followingId') followingId: number, @UserId() userId: string) {
+  follow(@Body('followingId') followingId: string, @UserId() userId: string) {
     if (!followingId) return new BadGatewayException('FollowDto must have a followingId')
 
-    return this.followService.follow(followingId, +userId);
+    return this.followService.follow(followingId, userId);
   }
 
 
@@ -22,6 +22,6 @@ export class FollowController {
   unFollow(@Param('id') unFollowingId: string, @UserId() userId: string) {
     if (!unFollowingId) return new BadGatewayException('UnFollowDto must have a unFollowingId')
 
-    return this.followService.unFollow(+unFollowingId, +userId);
+    return this.followService.unFollow(unFollowingId, userId);
   }
 }

@@ -43,7 +43,7 @@ export class PostController {
 
   @Get()
   async getAllPosts(
-    @UserId() userId: number,
+    @UserId() userId: string,
     @Query('page') page: number = 1,
     @Query('perPage') perPage: number = 10
   ) {

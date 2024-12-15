@@ -13,7 +13,7 @@ export class LikeService {
     this.likeDb = databaseService.like;
   }
 
-  async like(postId: number, userId: number) {
+  async like(postId: string, userId: string) {
     const existingLike = await this.findLike(postId, userId)
     const existingPost = await this.postService.findById(postId)
 
@@ -29,7 +29,7 @@ export class LikeService {
     console.log(like)
   }
 
-  async unlike(postId: number, userId: number) {
+  async unlike(postId: string, userId: string) {
 
     const existingLike = await this.findLike(postId, userId)
     if (!existingLike) return new BadGatewayException(`Can not dislike ${postId}`)
@@ -41,7 +41,7 @@ export class LikeService {
   }
 
 
-  async findLike(postId: number, userId: number) {
+  async findLike(postId: string, userId: string) {
     return await this.likeDb.findFirst({
       where: { postId, userId },
     })

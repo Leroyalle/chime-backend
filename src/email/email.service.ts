@@ -41,7 +41,7 @@ export class EmailService {
   }
 
 
-  async createVerificationCode(userId: number, code: string) {
+  async createVerificationCode(userId: string, code: string) {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
@@ -54,7 +54,7 @@ export class EmailService {
     });
   }
 
-  async verifyCode(userId: number, code: string): Promise<boolean> {
+  async verifyCode(userId: string, code: string): Promise<boolean> {
     const verificationCode = await this.databaseService.verificationCode.findFirst({
       where: {
         userId,

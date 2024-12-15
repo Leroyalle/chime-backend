@@ -19,7 +19,7 @@ export class PostService {
       data: {
         content,
         // imageUrl: filepath ? `/${filepath}` : undefined,
-        authorId: +userId,
+        authorId: userId,
       },
     });
 
@@ -27,7 +27,7 @@ export class PostService {
 
 
 
-  async getAllPosts(userId: number, page: number, perPage: number) {
+  async getAllPosts(userId: string, page: number, perPage: number) {
     const posts = await this.postDb.findMany({
       include: {
         author: true,
@@ -62,7 +62,7 @@ export class PostService {
   async getPostById(postId: string, userId: string) {
 
     const post = await this.postDb.findUnique({
-      where: { id: +postId },
+      where: { id: postId },
       include: {
         author: true,
         likes: true,
@@ -79,7 +79,7 @@ export class PostService {
 
     const postWithLikeInfo = {
       ...post,
-      isLiked: post.likes.some((like) => like.userId === parseInt(userId)),
+      isLiked: post.likes.some((like) => like.userId === userId),
     };
 
     return postWithLikeInfo
@@ -93,7 +93,7 @@ export class PostService {
 
     const existingPost = await this.postDb.findUnique({
       where: {
-        id: +postId,
+        id: postId,
       },
     });
 
@@ -117,7 +117,7 @@ export class PostService {
   }
 
 
-  async findById(id: number) {
+  async findById(id: string) {
     return await this.postDb.findUnique({
       where: { id }
     })

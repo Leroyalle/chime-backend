@@ -21,7 +21,7 @@ export class CommentService {
     const createdComment = await this.commentDb.create({
       data: {
         ...createCommentDto,
-        userId: +userId,
+        userId,
       },
       include: { user: true }
     })
@@ -33,7 +33,7 @@ export class CommentService {
     return `This action returns all comment`;
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     return await this.commentDb.findUnique({ where: { id: id } })
   }
 
@@ -41,7 +41,7 @@ export class CommentService {
     return `This action updates a #${id} comment`;
   }
 
-  async delete(postId: number, userId: number) {
+  async delete(postId: string, userId: string) {
     const existingPost = await this.findOne(postId)
 
     if (!existingPost) return new NotFoundException(`No post with id ${postId}`)
