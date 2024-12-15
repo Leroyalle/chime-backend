@@ -4,8 +4,6 @@ export class RolesClass {
     static readonly user: string = 'user'
     static readonly admin: string = 'admin'
     static readonly superAdmin: string = 'superAdmin'
-    static readonly orderUser: string = 'orderUser'
-    static readonly controller: string = 'controller'
 }
 
 export type UserId = string | number
@@ -17,7 +15,6 @@ export interface IBasicUser {
 
     EmailUser?,
     TelegramUser?,
-    VkUser?,
     GoogleUser?
 }
 

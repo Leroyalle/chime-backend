@@ -1,11 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, HttpException, HttpStatus, Res, Injectable, All, Next, Request } from '@nestjs/common';
-import { Roles } from 'src/roles.decorator';
+import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { EmailUsersService, UsersAdminService, UsersService } from 'src/users/users.service';
-import { usersSearchDto } from './dto/usersSearch-dto';
-import { RolesClass } from 'src/types/types';
 import { RolesGuard } from 'src/auth/strategies/roles.strategy';
-import { intervalDates } from './dto/intervalDates-dto';
+import { Roles } from 'src/roles.decorator';
+import { EmailUsersService, UsersAdminService, UserService } from 'src/user/user.service';
+import { RolesClass } from 'types/types';
+import { usersSearchDto } from './dto/usersSearch-dto';
 
 
 @Controller('admin/report')
@@ -13,7 +12,7 @@ import { intervalDates } from './dto/intervalDates-dto';
 @Roles(RolesClass.admin, RolesClass.superAdmin)
 export class AdminReportController {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly usersService: UserService,
   ) { }
 
 
@@ -26,7 +25,7 @@ export class AdminReportController {
 @Roles(RolesClass.admin, RolesClass.superAdmin)
 export class AdminUsersController {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly usersService: UserService,
     private readonly emailUsersService: EmailUsersService
 
   ) { }
@@ -72,7 +71,7 @@ export class AdminUsersController {
 @Roles(RolesClass.superAdmin)
 export class SuperAdminController {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly usersService: UserService,
     private readonly usersAdminService: UsersAdminService,
   ) { }
 

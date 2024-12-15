@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import * as argon2 from 'argon2'
-import { JwtService } from "@nestjs/jwt"
-import { EmailUsersService, UsersService } from 'src/users/users.service';
-import { DatabaseService } from 'src/database/database.service';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IBasicUser } from 'src/types/types';
+import { JwtService } from "@nestjs/jwt";
+import * as argon2 from 'argon2';
+import { DatabaseService } from 'src/database/database.service';
+import { EmailUsersService, UserService } from 'src/user/user.service';
+import { IBasicUser } from 'types/types';
 
 
 @Injectable()
@@ -13,7 +13,7 @@ export class AuthService {
 
 
   constructor(
-    private readonly usersService: UsersService,
+    private readonly usersService: UserService,
     private readonly emailUserService: EmailUsersService,
     private readonly jwtService: JwtService,
     private databaseService: DatabaseService,

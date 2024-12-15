@@ -1,4 +1,3 @@
-import { RolesClass } from "src/types/types"
 
 
 export class AdminDto {

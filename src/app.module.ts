@@ -1,16 +1,20 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from "@nestjs/schedule";
+import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { ConfigModule } from '@nestjs/config';
-import { DatabaseService } from './database/database.service';
-import { EmailUsersService, UsersService } from './users/users.service';
-import { AdminModule } from './admin/admin.module';
-import { ScheduleModule } from "@nestjs/schedule"
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { JwtModule } from '@nestjs/jwt';
+import { DatabaseModule } from './database/database.module';
+import { DatabaseService } from './database/database.service';
+import { UsersModule } from './user/user.module';
+import { EmailUsersService, UserService } from './user/user.service';
+import { LikeModule } from './like/like.module';
+import { PostModule } from './post/post.module';
+import { CommentModule } from './comment/comment.module';
+import { FollowModule } from './follow/follow.module';
 
 @Module({
   imports: [
@@ -25,6 +29,14 @@ import { JwtModule } from '@nestjs/jwt';
     }),
 
     ScheduleModule.forRoot(),
+
+    LikeModule,
+
+    PostModule,
+
+    CommentModule,
+
+    FollowModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard],
@@ -33,7 +45,7 @@ import { JwtModule } from '@nestjs/jwt';
 export class AppModule {
   constructor(
     private readonly databaseService: DatabaseService,
-    private readonly usersService: UsersService,
+    private readonly usersService: UserService,
     private readonly emailUsersService: EmailUsersService,
   ) { }
 

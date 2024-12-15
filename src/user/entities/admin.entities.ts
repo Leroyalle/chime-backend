@@ -1,5 +1,5 @@
 
-import { RolesClass } from '../../types/types'
+import { RolesClass } from '../../../types/types'
 import { AdminDto } from '../dto/create-admin-dto'
 
 

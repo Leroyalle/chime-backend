@@ -1,16 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
-import { DatabaseService } from 'src/database/database.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { RolesClass, UserId } from 'src/types/types';
-import { adminData, orgAdminName } from './entities/admin.entities';
-import { ConfigService } from '@nestjs/config';
-import { RegisterDto } from 'src/auth/dto/register-dto';
-import { AdminDto } from './dto/create-admin-dto';
 import { IGoogleAuthDto, ITelegramAuthDto } from 'src/auth/dto/entry-dto';
+import { RegisterDto } from 'src/auth/dto/register-dto';
+import { DatabaseService } from 'src/database/database.service';
+import { RolesClass, UserId } from 'types/types';
+import { AdminDto } from './dto/create-admin-dto';
 import { usersSearchDto } from './dto/usersSearch-dto';
+import { adminData } from './entities/admin.entities';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   protected userBaseDb: DatabaseService["userBase"]
   protected emailUsersDb: DatabaseService["emailUser"]
   protected telegramUsersDb: DatabaseService["telegramUser"]
@@ -69,8 +68,6 @@ export class UsersService {
     if (query.filterParams) {
       const { isRecipient, isOrderUser, isController } = query.filterParams
       if (isRecipient) baseWhere.recipient = true
-      if (isOrderUser) baseWhere.role = RolesClass.orderUser
-      if (isController) baseWhere.role = RolesClass.controller
     }
 
     const totalCount = await this.userBaseDb.count({
@@ -138,7 +135,7 @@ export class UsersService {
 }
 
 @Injectable()
-export class EmailUsersService extends UsersService {
+export class EmailUsersService extends UserService {
 
 
 
@@ -263,7 +260,7 @@ export class EmailUsersService extends UsersService {
 
 
 @Injectable()
-export class TelegramUsersService extends UsersService {
+export class TelegramUsersService extends UserService {
 
 
   async findOrCreate(telegramData: ITelegramAuthDto) {
@@ -315,7 +312,7 @@ export class TelegramUsersService extends UsersService {
 
 
 @Injectable()
-export class GoogleUsersService extends UsersService {
+export class GoogleUsersService extends UserService {
 
 
   async findOrCreate(googleData: IGoogleAuthDto) {
@@ -362,7 +359,7 @@ export class GoogleUsersService extends UsersService {
 
 
 @Injectable()
-export class UsersAdminService extends UsersService {
+export class UsersAdminService extends UserService {
 
   async getAdmins() {
     return await this.userBaseDb.findMany({

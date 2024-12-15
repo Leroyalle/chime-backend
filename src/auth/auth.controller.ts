@@ -1,13 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, NotFoundException, UnauthorizedException, BadRequestException, Query } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { ConfigService } from '@nestjs/config';
-import { RolesClass } from 'src/types/types';
+import { BadRequestException, Body, Controller, Get, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { RegisterDto } from './dto/register-dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { EmailUsersService, GoogleUsersService, TelegramUsersService, UsersService } from 'src/users/users.service';
-import { EntryAdminDto, EntryDto, IGoogleAuthDto, IGoogleJwtDto, ITelegramAuthDto } from './dto/entry-dto';
 import { EmailService } from 'src/email/email.service';
+import { EmailUsersService, GoogleUsersService, TelegramUsersService, UserService } from 'src/user/user.service';
+import { RolesClass } from 'types/types';
+import { AuthService } from './auth.service';
+import { EntryAdminDto, EntryDto, IGoogleAuthDto, IGoogleJwtDto, ITelegramAuthDto } from './dto/entry-dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth-guard';
 
 interface IAuthController {
@@ -22,7 +20,7 @@ interface IAuthController {
 export class AuthController {
   constructor(
     protected readonly authService: AuthService,
-    protected readonly usersService: UsersService,
+    protected readonly usersService: UserService,
     protected readonly emailService: EmailService,
     protected readonly emailUserService: EmailUsersService,
     protected readonly telegramUsersService: TelegramUsersService,

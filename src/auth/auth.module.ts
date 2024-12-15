@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { AuthController, EmailAuthController, GoogleAuthController, TelegramAuthController } from './auth.controller';
-import { PassportModule } from '@nestjs/passport';
-import { LocalStrategy } from './strategies/local.strategy';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { AuthController, EmailAuthController, GoogleAuthController, TelegramAuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { LocalStrategy } from './strategies/local.strategy';
 
-import { ConfigModule, ConfigService } from '@nestjs/config'
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { UsersModule } from 'src/users/users.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from 'src/database/database.module';
 import { EmailModule } from 'src/email/email.module';
-import { EmailUsersService, TelegramUsersService, UsersService } from 'src/users/users.service';
+import { UsersModule } from 'src/user/user.module';
+import { EmailUsersService, TelegramUsersService, UserService } from 'src/user/user.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -32,6 +32,6 @@ import { EmailUsersService, TelegramUsersService, UsersService } from 'src/users
     })
   ],
   controllers: [AuthController, EmailAuthController, TelegramAuthController, GoogleAuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, TelegramUsersService, EmailUsersService, UsersService],
+  providers: [AuthService, LocalStrategy, JwtStrategy, TelegramUsersService, EmailUsersService, UserService],
 })
 export class AuthModule { }

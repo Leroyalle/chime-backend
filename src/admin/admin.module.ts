@@ -1,10 +1,10 @@
-import { Module, UseGuards } from '@nestjs/common';
-import { AdminService } from './admin.service';
-import { AdminReportController, AdminUsersController, SuperAdminController } from './admin.controller';
-import { UsersModule } from 'src/users/users.module';
+import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { RolesGuard } from 'src/auth/strategies/roles.strategy';
 import { DatabaseModule } from 'src/database/database.module';
+import { UsersModule } from 'src/user/user.module';
+import { AdminReportController, AdminUsersController, SuperAdminController } from './admin.controller';
+import { AdminService } from './admin.service';
 
 @Module({
   imports: [
