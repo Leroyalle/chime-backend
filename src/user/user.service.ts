@@ -23,9 +23,9 @@ export class UserService {
   }
 
 
-  async findUserById(id: string) {
+  async findUserById(userBaseId: string) {
     const user = await this.userBaseDb.findUnique({
-      where: { id },
+      where: { id: userBaseId },
       include: {
         EmailUser: true,
         TelegramUser: true,
@@ -34,6 +34,17 @@ export class UserService {
     })
 
     return user
+  }
+
+  async findBaseUserByEmailUserId(userId: string) {
+    const emailUser = await this.emailUsersDb.findUnique({
+      where: { id: userId },
+      include: {
+        userBase: true
+      }
+    })
+
+    return await this.findUserById(emailUser.userBaseId)
   }
 
   async switchBanUser(userId: number | string) {
@@ -53,7 +64,7 @@ export class UserService {
           in: [RolesClass.admin, RolesClass.superAdmin]
         }
       },
-      
+
     }
 
     if (query.search) {
@@ -75,7 +86,7 @@ export class UserService {
     })
 
     let maxPage = Math.ceil(totalCount / take)
-    if(maxPage <= 0) maxPage = 1
+    if (maxPage <= 0) maxPage = 1
 
     const users = await this.userBaseDb.findMany({
       where: baseWhere,

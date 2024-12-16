@@ -10,7 +10,7 @@ export type UserId = string | number
 
 
 export interface IBasicUser {
-    id: UserId,
+    id: string,
     role: string,
 
     EmailUser?,

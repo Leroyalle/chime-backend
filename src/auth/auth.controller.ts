@@ -111,8 +111,15 @@ export class EmailAuthController extends AuthController implements IAuthControll
   async verify(@Body() body: { userId: string; code: string }) {
     console.log(body)
     const result = await this.emailService.verifyCode(body.userId, body.code);
+    console.log(result)
     if (!result) throw new BadRequestException('Invalid or expired verification code')
-    const validUser = await this.usersService.findUserById(body.userId)
+
+    console.log(body.userId)
+    // const validUser = await this.usersService.findUserById(body.userId)
+
+    const validUser = await this.usersService.findBaseUserByEmailUserId(body.userId)
+
+    console.log(validUser)
 
     return await this.authService.login(validUser)
 

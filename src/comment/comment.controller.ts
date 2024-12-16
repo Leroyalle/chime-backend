@@ -14,6 +14,8 @@ export class CommentController {
   create(@Body() createCommentDto: CreateCommentDto, @UserId() userId: string) {
     if (!createCommentDto) throw new BadGatewayException('Fields must be provided')
 
+    console.log(createCommentDto)
+
     return this.commentService.create(userId, createCommentDto);
   }
 

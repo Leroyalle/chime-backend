@@ -55,6 +55,7 @@ export class EmailService {
   }
 
   async verifyCode(userId: string, code: string): Promise<boolean> {
+    console.log('verifyCode', userId, code);
     const verificationCode = await this.databaseService.verificationCode.findFirst({
       where: {
         userId,

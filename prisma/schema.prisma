@@ -79,7 +79,7 @@ model Post {
   imageUrl String?
 
   authorId String
-  author   UserBase @relation(fields: [authorId], references: [id])
+  author   UserBase @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   likes    Like[]
   comments Comment[]
@@ -93,7 +93,7 @@ model Like {
   user   UserBase @relation(fields: [userId], references: [id])
 
   postId String
-  post   Post @relation(fields: [postId], references: [id])
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
@@ -101,10 +101,10 @@ model Comment {
   content String
 
   userId String
-  user   UserBase @relation(fields: [userId], references: [id])
+  user   UserBase @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   postId String
-  post   Post @relation(fields: [postId], references: [id])
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
