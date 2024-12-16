@@ -14,6 +14,8 @@ export class CommentService {
   }
 
   async create(userId: string, createCommentDto: CreateCommentDto) {
+
+    //TODO not found a post
     const existingPost = await this.findOne(createCommentDto.postId)
     console.log(existingPost)
 
