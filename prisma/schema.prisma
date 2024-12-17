@@ -18,9 +18,13 @@ model VerificationCode {
 }
 
 model UserBase {
-  id        String   @id @default(uuid())
-  banned    Boolean  @default(false)
-  role      String   @default("user")
+  id     String  @id @default(uuid())
+  banned Boolean @default(false)
+  role   String  @default("user")
+
+  about  String?
+  name    String @default("User")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -48,8 +52,8 @@ model EmailUser {
 }
 
 model TelegramUser {
-  id         String  @id @default(uuid())
-  telegramId String  @unique
+  id         String @id @default(uuid())
+  telegramId String @unique
 
   firstName String
   username  String
@@ -61,8 +65,8 @@ model TelegramUser {
 }
 
 model GoogleUser {
-  id    String  @id @default(uuid())
-  email String  @unique
+  id    String @id @default(uuid())
+  email String @unique
 
   name      String
   givenName String
@@ -74,7 +78,7 @@ model GoogleUser {
 }
 
 model Post {
-  id       String   @id @default(uuid())
+  id       String  @id @default(uuid())
   content  String
   imageUrl String?
 
@@ -93,18 +97,18 @@ model Like {
   user   UserBase @relation(fields: [userId], references: [id])
 
   postId String
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
-  id      String   @id @default(uuid())
+  id      String @id @default(uuid())
   content String
 
   userId String
   user   UserBase @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   postId String
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

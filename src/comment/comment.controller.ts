@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, BadGatewayException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  BadGatewayException,
+} from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -8,13 +18,14 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('comment')
 export class CommentController {
-  constructor(private readonly commentService: CommentService) { }
+  constructor(private readonly commentService: CommentService) {}
 
   @Post()
   create(@Body() createCommentDto: CreateCommentDto, @UserId() userId: string) {
-    if (!createCommentDto) throw new BadGatewayException('Fields must be provided')
+    if (!createCommentDto)
+      throw new BadGatewayException('Fields must be provided');
 
-    console.log(createCommentDto)
+    console.log(createCommentDto);
 
     return this.commentService.create(userId, createCommentDto);
   }

@@ -24,33 +24,31 @@ import { UserId } from 'src/userid.decorator';
 @Controller('posts')
 @UseGuards(JwtAuthGuard)
 export class PostController {
-
-  constructor(private readonly postService: PostService) { }
+  constructor(private readonly postService: PostService) {}
 
   @Post()
   // @UseInterceptors(FileInterceptor('postImage'))
-  async createPost(@Body() body: { content: string }, @UserId() userId: string) {
+  async createPost(
+    @Body() body: { content: string },
+    @UserId() userId: string,
+  ) {
+    console.log(body.content);
+    console.log(userId);
 
-    console.log(body.content)
-    console.log(userId)
+    if (!body.content) return new BadRequestException('Text must be provided');
 
-    if (!body.content) return new BadRequestException('Text must be provided')
-
-
-
-    return this.postService.createPost(body.content, userId)
+    return this.postService.createPost(body.content, userId);
   }
 
   @Get()
   async getAllPosts(
     @UserId() userId: string,
     @Query('page') page: number = 1,
-    @Query('perPage') perPage: number = 10
+    @Query('perPage') perPage: number = 10,
   ) {
+    console.log(userId);
 
-    console.log(userId)
-
-    return this.postService.getAllPosts(userId, page, perPage);
+    return this.postService.getAllPosts(userId, +page, +perPage);
   }
 
   @Get(':id')

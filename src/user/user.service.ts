@@ -7,86 +7,84 @@ import { RolesClass, UserId } from 'types/types';
 import { AdminDto } from './dto/create-admin-dto';
 import { usersSearchDto } from './dto/usersSearch-dto';
 import { adminData } from './entities/admin.entities';
+import { Prisma } from '@prisma/client';
+import { UpdateUserDto } from './dto/update-user-dto';
 
 @Injectable()
 export class UserService {
-  protected userBaseDb: DatabaseService["userBase"]
-  protected emailUsersDb: DatabaseService["emailUser"]
-  protected telegramUsersDb: DatabaseService["telegramUser"]
-  protected googleUsersDb: DatabaseService["googleUser"]
+  protected userBaseDb: DatabaseService['userBase'];
+  protected emailUsersDb: DatabaseService['emailUser'];
+  protected telegramUsersDb: DatabaseService['telegramUser'];
+  protected googleUsersDb: DatabaseService['googleUser'];
 
   constructor(private dbService: DatabaseService) {
-    this.userBaseDb = dbService.userBase
-    this.emailUsersDb = dbService.emailUser
-    this.telegramUsersDb = dbService.telegramUser
-    this.googleUsersDb = dbService.googleUser
+    this.userBaseDb = dbService.userBase;
+    this.emailUsersDb = dbService.emailUser;
+    this.telegramUsersDb = dbService.telegramUser;
+    this.googleUsersDb = dbService.googleUser;
   }
 
-
-  async findUserById(userBaseId: string) {
+  async findUserById(id: string) {
     const user = await this.userBaseDb.findUnique({
-      where: { id: userBaseId },
+      where: { id },
       include: {
         EmailUser: true,
         TelegramUser: true,
-        GoogleUser: true
-      }
-    })
+        GoogleUser: true,
+      },
+    });
 
-    return user
+    return user;
   }
 
   async findBaseUserByEmailUserId(userId: string) {
     const emailUser = await this.emailUsersDb.findUnique({
       where: { id: userId },
       include: {
-        userBase: true
-      }
-    })
+        userBase: true,
+      },
+    });
 
-    return await this.findUserById(emailUser.userBaseId)
+    return await this.findUserById(emailUser.userBaseId);
   }
 
-  async switchBanUser(userId: number | string) {
-  }
-
+  async switchBanUser(userId: number | string) { }
 
   async findAll(query: usersSearchDto) {
-    let { page = '1', limit = '15' } = query
+    let { page = '1', limit = '15' } = query;
 
-    if (parseInt(page) <= 0) page = '1'
-    const take = parseInt(limit, 10) || 15
-    const skip = ((parseInt(page, 10) || 1) - 1) * take
+    if (parseInt(page) <= 0) page = '1';
+    const take = parseInt(limit, 10) || 15;
+    const skip = ((parseInt(page, 10) || 1) - 1) * take;
 
     const baseWhere: any = {
       role: {
         not: {
-          in: [RolesClass.admin, RolesClass.superAdmin]
-        }
+          in: [RolesClass.admin, RolesClass.superAdmin],
+        },
       },
-
-    }
+    };
 
     if (query.search) {
-      const search = query.search
+      const search = query.search;
       baseWhere.OR = [
         // { email: { contains: search } },
         // { name: { contains: search } },
         // { employeeID: { contains: search } }
-      ]
+      ];
     }
 
     if (query.filterParams) {
-      const { isRecipient, isOrderUser, isController } = query.filterParams
-      if (isRecipient) baseWhere.recipient = true
+      const { isRecipient, isOrderUser, isController } = query.filterParams;
+      if (isRecipient) baseWhere.recipient = true;
     }
 
     const totalCount = await this.userBaseDb.count({
-      where: baseWhere
-    })
+      where: baseWhere,
+    });
 
-    let maxPage = Math.ceil(totalCount / take)
-    if (maxPage <= 0) maxPage = 1
+    let maxPage = Math.ceil(totalCount / take);
+    if (maxPage <= 0) maxPage = 1;
 
     const users = await this.userBaseDb.findMany({
       where: baseWhere,
@@ -95,9 +93,9 @@ export class UserService {
       include: {
         EmailUser: true,
         TelegramUser: true,
-        GoogleUser: true
-      }
-    })
+        GoogleUser: true,
+      },
+    });
 
     return {
       users,
@@ -105,11 +103,21 @@ export class UserService {
         totalCount,
         maxPage,
         currentPage: parseInt(page, 10),
-        limit: take
-      }
-    }
+        limit: take,
+      },
+    };
   }
 
+
+
+  async update(userId: string, updateUserDto: UpdateUserDto) {
+    return await this.userBaseDb.update({
+      where: { id: userId },
+      data: updateUserDto,
+    })
+
+
+  }
 
   // async generateUsers(count: number) {
   //   const users = [];
@@ -122,7 +130,6 @@ export class UserService {
   //       password: await argon2.hash(`password${i + 1}`),
   //       organizationId: null,
   //     };
-
 
   //     users.push(user)
   //   }
@@ -137,7 +144,6 @@ export class UserService {
   //   }
   // }
 
-
   // async createFakeUser(users: []) {
   //   await this.databaseService.user.createMany({
   //     data: users,
@@ -147,15 +153,12 @@ export class UserService {
 
 @Injectable()
 export class EmailUsersService extends UserService {
-
-
-
   async findOrCreateAdmins(userCreateDto: AdminDto[]) {
     const existingUsers = await this.userBaseDb.findMany({
       where: {
         role: { in: [RolesClass.admin, RolesClass.superAdmin] },
         EmailUser: {
-          email: { in: userCreateDto.map(u => u.email) },
+          email: { in: userCreateDto.map((u) => u.email) },
         },
       },
       include: {
@@ -163,18 +166,21 @@ export class EmailUsersService extends UserService {
       },
     });
 
-    const existingEmails = existingUsers.flatMap(user =>
-      user.EmailUser ? [user.EmailUser.email] : []
+    const existingEmails = existingUsers.flatMap((user) =>
+      user.EmailUser ? [user.EmailUser.email] : [],
     );
 
-    const usersToCreate = userCreateDto.filter(user => !existingEmails.includes(user.email));
+    const usersToCreate = userCreateDto.filter(
+      (user) => !existingEmails.includes(user.email),
+    );
     console.log(usersToCreate);
 
     const createdUsers = await Promise.all(
-      usersToCreate.map(async user => {
+      usersToCreate.map(async (user) => {
         const newUserBase = await this.userBaseDb.create({
           data: {
             role: user.role,
+            name: user.role,
             EmailUser: {
               create: {
                 email: user.email,
@@ -184,15 +190,20 @@ export class EmailUsersService extends UserService {
           },
         });
         return newUserBase;
-      })
+      }),
     );
 
     await Promise.all(
-      existingUsers.map(async existingUser => {
-        const userDto = userCreateDto.find(u => u.email === existingUser.EmailUser?.email);
+      existingUsers.map(async (existingUser) => {
+        const userDto = userCreateDto.find(
+          (u) => u.email === existingUser.EmailUser?.email,
+        );
 
         if (userDto && existingUser.EmailUser?.password) {
-          const isPasswordUpdated = await argon2.verify(existingUser.EmailUser.password, userDto.password);
+          const isPasswordUpdated = await argon2.verify(
+            existingUser.EmailUser.password,
+            userDto.password,
+          );
 
           if (!isPasswordUpdated) {
             await this.emailUsersDb.update({
@@ -203,85 +214,77 @@ export class EmailUsersService extends UserService {
             });
           }
         }
-      })
+      }),
     );
 
     return { existingEmails, usersToCreate, createdUsers };
   }
 
-
-
   async create(createUserDto: RegisterDto) {
-    const existingUser = await this.findOne(createUserDto.email)
-    console.log(existingUser)
+    const existingUser = await this.findOne(createUserDto.email);
+    console.log(existingUser);
 
-    if (existingUser) throw new BadRequestException(`User already exists`)
+    if (existingUser) throw new BadRequestException(`User already exists`);
+
+    const lastUserId = await this.userBaseDb.count() + 1
 
     const createdUser = await this.userBaseDb.create({
       data: {
+        name: "User" + lastUserId,
         EmailUser: {
           create: {
-            email: createUserDto.email
-          }
-        }
+            email: createUserDto.email,
+
+          },
+        },
       },
       include: {
         EmailUser: true,
-      }
-    })
+      },
+    });
 
-    return createdUser
+    return createdUser;
   }
 
-
   async changePassword(userId: string, password: string) {
-
     return await this.emailUsersDb.update({
       where: { id: userId },
       data: {
         password: await argon2.hash(password),
       },
-    })
-
-
+    });
   }
 
   async findOne(email: string) {
     const user = await this.emailUsersDb.findUnique({
       where: { email },
       include: {
-        userBase: true
-      }
-    })
-    return user
+        userBase: true,
+      },
+    });
+    return user;
   }
 
   async findOneById(id: string) {
     return this.emailUsersDb.findUnique({
-      where: { id }
-    })
+      where: { id },
+    });
   }
-
 
   async createAdminsOnInit() {
-    return await this.findOrCreateAdmins(adminData)
+    return await this.findOrCreateAdmins(adminData);
   }
-
 }
-
 
 @Injectable()
 export class TelegramUsersService extends UserService {
-
-
   async findOrCreate(telegramData: ITelegramAuthDto) {
-
-    console.log(telegramData)
+    console.log(telegramData);
     const existingUser = await this.findOneByTelegramId(telegramData.id);
 
-    console.log(existingUser)
+    console.log(existingUser);
     if (existingUser) {
-      return await this.findUserById(existingUser.userBaseId)
+      return await this.findUserById(existingUser.userBaseId);
     }
 
     const createdUser = await this.userBaseDb.create({
@@ -292,8 +295,7 @@ export class TelegramUsersService extends UserService {
             username: telegramData.username,
             firstName: telegramData.first_name,
             photoUrl: telegramData.photo_url,
-            authDate: new Date(telegramData.auth_date * 1000)
-
+            authDate: new Date(telegramData.auth_date * 1000),
           },
         },
       },
@@ -302,36 +304,30 @@ export class TelegramUsersService extends UserService {
       },
     });
 
-    return createdUser
+    return createdUser;
   }
 
   async findOneByTelegramId(telegramId: string | number) {
-
     return await this.telegramUsersDb.findUnique({
       where: { telegramId: telegramId.toString() },
-    })
+    });
   }
-
 
   async findOneById(id: string) {
     return this.telegramUsersDb.findUnique({
-      where: { id }
-    })
+      where: { id },
+    });
   }
-
 }
-
 
 @Injectable()
 export class GoogleUsersService extends UserService {
-
-
   async findOrCreate(googleData: IGoogleAuthDto) {
     const existingUser = await this.findOneByEmail(googleData.email);
 
-    console.log(existingUser)
+    console.log(existingUser);
     if (existingUser) {
-      return await this.findUserById(existingUser.userBaseId)
+      return await this.findUserById(existingUser.userBaseId);
     }
 
     const createdUser = await this.userBaseDb.create({
@@ -341,7 +337,7 @@ export class GoogleUsersService extends UserService {
             email: googleData.email,
             name: googleData.name,
             photoUrl: googleData.picture,
-            givenName: googleData.given_name
+            givenName: googleData.given_name,
           },
         },
       },
@@ -350,45 +346,41 @@ export class GoogleUsersService extends UserService {
       },
     });
 
-    return createdUser
+    return createdUser;
   }
 
   async findOneByEmail(email: string) {
     return await this.googleUsersDb.findUnique({
-      where: { email }
-    })
+      where: { email },
+    });
   }
-
 
   async findOneById(id: string) {
     return this.googleUsersDb.findUnique({
-      where: { id }
-    })
+      where: { id },
+    });
   }
-
 }
-
 
 @Injectable()
 export class UsersAdminService extends UserService {
-
   async getAdmins() {
     return await this.userBaseDb.findMany({
       where: {
-        role: RolesClass.admin
+        role: RolesClass.admin,
       },
-    })
+    });
   }
 
   async switchBanAdmins(adminId: string) {
     const admin = await this.userBaseDb.findUnique({
       where: { id: adminId },
-      select: { banned: true }
-    })
+      select: { banned: true },
+    });
 
-    if (!admin) throw new Error('Admin not found')
+    if (!admin) throw new Error('Admin not found');
 
-    const banned = !admin.banned
+    const banned = !admin.banned;
 
     await this.userBaseDb.update({
       where: { id: adminId },
@@ -397,6 +389,6 @@ export class UsersAdminService extends UserService {
       },
     });
 
-    return { banned }
+    return { banned };
   }
 }
