@@ -46,6 +46,15 @@ export class PostController {
     return this.postService.getPostById(postId, userId);
   }
 
+  @Get('user/:id')
+  async getPostsByUserId(
+    @Param('id') userId: string,
+    @Query('page') page: number = 1,
+    @Query('perPage') perPage: number = 10,
+  ) {
+    return this.postService.getAllPostsByUserId(userId, +page, +perPage);
+  }
+
   @Delete(':id')
   async deletePost(@Param('id') postId: string, @UserId() userId: string) {
     return this.postService.deletePost(postId, userId);

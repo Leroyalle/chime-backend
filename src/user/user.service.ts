@@ -31,6 +31,16 @@ export class UserService {
         EmailUser: true,
         TelegramUser: true,
         GoogleUser: true,
+        // // TODO: skip take params
+        // followers: true,
+        // following: true,
+        // posts: {
+        //   include: {
+        //     author: true,
+        //     likes: true,
+        //     comments: true,
+        //   },
+        // },
       },
     });
 

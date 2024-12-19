@@ -4,7 +4,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { DatabaseModule } from 'src/database/database.module';
 import { UserController } from './user.controller';
-import { EmailUsersService, GoogleUsersService, TelegramUsersService, UsersAdminService, UserService } from './user.service';
+import {
+  EmailUsersService,
+  GoogleUsersService,
+  TelegramUsersService,
+  UsersAdminService,
+  UserService,
+} from './user.service';
 
 @Module({
   imports: [
@@ -19,10 +25,22 @@ import { EmailUsersService, GoogleUsersService, TelegramUsersService, UsersAdmin
         signOptions: { expiresIn: '15d' },
       }),
       inject: [ConfigService],
-    })
+    }),
   ],
   controllers: [UserController],
-  providers: [UserService, UsersAdminService, EmailUsersService, TelegramUsersService, GoogleUsersService],
-  exports: [UserService, UsersAdminService, EmailUsersService, TelegramUsersService, GoogleUsersService]
+  providers: [
+    UserService,
+    UsersAdminService,
+    EmailUsersService,
+    TelegramUsersService,
+    GoogleUsersService,
+  ],
+  exports: [
+    UserService,
+    UsersAdminService,
+    EmailUsersService,
+    TelegramUsersService,
+    GoogleUsersService,
+  ],
 })
-export class UsersModule { }
+export class UsersModule {}

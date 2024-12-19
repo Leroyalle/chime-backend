@@ -1,20 +1,20 @@
-import { Injectable, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class PostService {
-  protected postDb: DatabaseService['post']
+  protected postDb: DatabaseService['post'];
 
-  constructor(
-    private readonly databaseService: DatabaseService
-  ) {
+  constructor(private readonly databaseService: DatabaseService) {
     this.postDb = databaseService.post;
   }
 
-
   async createPost(content: string, userId: string) {
-
-
     return await this.postDb.create({
       data: {
         content,
@@ -22,10 +22,7 @@ export class PostService {
         authorId: userId,
       },
     });
-
   }
-
-
 
   async getAllPosts(userId: string, page: number, perPage: number) {
     const posts = await this.postDb.findMany({
@@ -39,28 +36,26 @@ export class PostService {
       },
       skip: (page - 1) * perPage,
       take: perPage,
-    })
+    });
 
     const postWithLikeInfo = posts.map((post) => ({
       ...post,
       isLiked: post.likes.some((like) => like.userId === userId),
       likesCount: post.likes.length,
       commentsCount: post.comments.length,
-    }))
+    }));
 
-    const totalPosts = await this.postDb.count()
-    const totalPages = Math.ceil(totalPosts / perPage)
+    const totalPosts = await this.postDb.count();
+    const totalPages = Math.ceil(totalPosts / perPage);
 
     return {
       data: postWithLikeInfo,
       currentPage: page,
       totalPages,
-    }
+    };
   }
 
-
   async getPostById(postId: string, userId: string) {
-
     const post = await this.postDb.findUnique({
       where: { id: postId },
       include: {
@@ -71,36 +66,64 @@ export class PostService {
             user: true,
           },
           orderBy: { createdAt: 'desc' },
-        }
-      }
-    })
+        },
+      },
+    });
 
-    if (!post) return new NotFoundException('Post not found')
+    if (!post) return new NotFoundException('Post not found');
 
     const postWithLikeInfo = {
       ...post,
       isLiked: post.likes.some((like) => like.userId === userId),
     };
 
-    return postWithLikeInfo
-
-
+    return postWithLikeInfo;
   }
 
+  async getAllPostsByUserId(userId: string, page: number, perPage: number) {
+    try {
+      const posts = await this.postDb.findMany({
+        where: { authorId: userId },
+        include: {
+          author: true,
+          likes: true,
+          comments: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      });
 
+      const postWithLikeInfo = posts.map((post) => ({
+        ...post,
+        isLiked: post.likes.some((like) => like.userId === userId),
+        likesCount: post.likes.length,
+        commentsCount: post.comments.length,
+      }));
+
+      const totalPosts = await this.postDb.count();
+      const totalPages = Math.ceil(totalPosts / perPage);
+      return {
+        data: postWithLikeInfo,
+        currentPage: page,
+        totalPages,
+      };
+    } catch (error) {
+      console.log('Error [getPostsByUserId]', error);
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 
   async deletePost(postId: string, userId: string) {
-
     const existingPost = await this.postDb.findUnique({
       where: {
         id: postId,
       },
     });
 
-
     if (!existingPost) return new NotFoundException('Post not found');
-
-
 
     // TODO fix later
 
@@ -111,18 +134,11 @@ export class PostService {
     // ]);
 
     // return transaction
-
-
-
   }
-
 
   async findById(id: string) {
     return await this.postDb.findUnique({
-      where: { id }
-    })
+      where: { id },
+    });
   }
-
-
-
 }
