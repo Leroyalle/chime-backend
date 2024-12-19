@@ -48,7 +48,7 @@ export class UserService {
     return await this.findUserById(emailUser.userBaseId);
   }
 
-  async switchBanUser(userId: number | string) { }
+  async switchBanUser(userId: number | string) {}
 
   async findAll(query: usersSearchDto) {
     let { page = '1', limit = '15' } = query;
@@ -108,15 +108,11 @@ export class UserService {
     };
   }
 
-
-
   async update(userId: string, updateUserDto: UpdateUserDto) {
     return await this.userBaseDb.update({
       where: { id: userId },
       data: updateUserDto,
-    })
-
-
+    });
   }
 
   // async generateUsers(count: number) {
@@ -226,15 +222,14 @@ export class EmailUsersService extends UserService {
 
     if (existingUser) throw new BadRequestException(`User already exists`);
 
-    const lastUserId = await this.userBaseDb.count() + 1
+    const lastUserId = (await this.userBaseDb.count()) + 1;
 
     const createdUser = await this.userBaseDb.create({
       data: {
-        name: "User" + lastUserId,
+        name: 'User' + lastUserId,
         EmailUser: {
           create: {
             email: createUserDto.email,
-
           },
         },
       },

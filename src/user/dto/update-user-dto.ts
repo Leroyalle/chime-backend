@@ -1,5 +1,6 @@
 export class UpdateUserDto {
-    name: string
-    about: string
-    // avatarUrl: string
+  name: string;
+  about: string;
+  email: string;
+  // avatarUrl: string
 }
