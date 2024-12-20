@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { DatabaseService } from 'src/database/database.service';
@@ -40,6 +45,34 @@ export class CommentService {
 
   findAll() {
     return `This action returns all comment`;
+  }
+
+  async getAllByUserId(userId: string, page: number, perPage: number) {
+    try {
+      const comments = await this.commentDb.findMany({
+        where: { userId },
+        include: {
+          post: true,
+          user: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      });
+
+      const totalComments = await this.commentDb.count();
+      const totalPages = Math.ceil(totalComments / perPage);
+      return {
+        data: comments,
+        currentPage: page,
+        totalPages,
+      };
+    } catch (error) {
+      console.log('Error [getPostsByUserId]', error);
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
   }
 
   async findOne(id: string) {

@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   BadGatewayException,
+  Query,
 } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -33,6 +34,15 @@ export class CommentController {
   @Get()
   findAll() {
     return this.commentService.findAll();
+  }
+
+  @Get('user/:id')
+  getAllByUserId(
+    @Param('id') userId: string,
+    @Query('page') page: number = 1,
+    @Query('perPage') perPage: number = 10,
+  ) {
+    return this.commentService.getAllByUserId(userId, +page, +perPage);
   }
 
   @Get(':id')
