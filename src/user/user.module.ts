@@ -11,13 +11,15 @@ import {
   UsersAdminService,
   UserService,
 } from './user.service';
+import { FollowModule } from 'src/follow/follow.module';
+import { FollowService } from 'src/follow/follow.service';
 
 @Module({
   imports: [
     DatabaseModule,
     HttpModule,
     ConfigModule,
-
+    FollowModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -34,6 +36,7 @@ import {
     EmailUsersService,
     TelegramUsersService,
     GoogleUsersService,
+    FollowService,
   ],
   exports: [
     UserService,

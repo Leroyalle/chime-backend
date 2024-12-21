@@ -20,6 +20,7 @@ import {
   UserService,
 } from 'src/user/user.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { FollowModule } from 'src/follow/follow.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     DatabaseModule,
     UsersModule,
     EmailModule,
+    FollowModule,
 
     JwtModule.registerAsync({
       imports: [ConfigModule],

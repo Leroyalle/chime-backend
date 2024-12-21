@@ -35,7 +35,7 @@ export class UserController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @UserId() userId: string) {
-    const findUser = await this.usersService.findUserById(id);
+    const findUser = await this.usersService.findUserByIdWithFollow(id, userId);
     const isOwner = findUser.id === userId;
     return { user: findUser, isOwner };
   }

@@ -1,25 +1,21 @@
 import { BadGatewayException, Injectable } from '@nestjs/common';
-import { CreateFollowDto } from './dto/create-follow.dto';
-import { UpdateFollowDto } from './dto/update-follow.dto';
 import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class FollowService {
-  protected followDb: DatabaseService['follows']
+  protected followDb: DatabaseService['follows'];
 
-  constructor(
-    private readonly databaseService: DatabaseService
-  ) {
+  constructor(private readonly databaseService: DatabaseService) {
     this.followDb = databaseService.follows;
   }
 
-
   async follow(followingId: string, userId: string) {
+    if (followingId == userId)
+      throw new BadGatewayException('You cannot follow yourself');
 
-    if (followingId == userId) return new BadGatewayException("You cannot follow yourself")
-
-    const existingFollow = await this.findFollow(userId, followingId)
-    if (existingFollow) return new BadGatewayException("You already have a follow on this user")
+    const existingFollow = await this.findFollow(userId, followingId);
+    if (existingFollow)
+      throw new BadGatewayException('You already have a follow on this user');
 
     await this.followDb.create({
       data: {
@@ -28,16 +24,16 @@ export class FollowService {
       },
     });
 
-
-    return { message: `Followed successfully on UserBase ${followingId} ` }
+    return { message: `Followed successfully on UserBase ${followingId} ` };
   }
 
   async unFollow(unFollowingId: string, userId: string) {
-    if (unFollowingId == userId) return new BadGatewayException("You don't have a follow on yourself")
+    if (unFollowingId == userId)
+      throw new BadGatewayException("You don't have a follow on yourself");
 
-    const existingFollow = await this.findFollow(userId, unFollowingId)
-    if (!existingFollow) return new BadGatewayException("You don't have a follow on this user")
-
+    const existingFollow = await this.findFollow(userId, unFollowingId);
+    if (!existingFollow)
+      throw new BadGatewayException("You don't have a follow on this user");
 
     await this.followDb.delete({
       where: {
@@ -45,16 +41,26 @@ export class FollowService {
       },
     });
 
-
-    return { message: `Unfollowed successfully on UserBase ${unFollowingId} ` }
+    return { message: `Unfollowed successfully on UserBase ${unFollowingId} ` };
   }
-
 
   async findFollow(followerId: string, followingId: string) {
     return await this.followDb.findFirst({
-      where: { followerId, followingId },
+      where: {
+        AND: [{ followerId }, { followingId }],
+      },
     });
   }
 
+  async findCountFollowers(userId: string) {
+    return await this.followDb.count({
+      where: { followingId: userId },
+    });
+  }
 
+  async findCountFollowing(userId: string) {
+    return await this.followDb.count({
+      where: { followerId: userId },
+    });
+  }
 }

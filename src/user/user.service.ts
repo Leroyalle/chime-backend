@@ -3,12 +3,12 @@ import * as argon2 from 'argon2';
 import { IGoogleAuthDto, ITelegramAuthDto } from 'src/auth/dto/entry-dto';
 import { RegisterDto } from 'src/auth/dto/register-dto';
 import { DatabaseService } from 'src/database/database.service';
-import { RolesClass, UserId } from 'types/types';
+import { RolesClass } from 'types/types';
 import { AdminDto } from './dto/create-admin-dto';
 import { usersSearchDto } from './dto/usersSearch-dto';
 import { adminData } from './entities/admin.entities';
-import { Prisma } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user-dto';
+import { FollowService } from 'src/follow/follow.service';
 
 @Injectable()
 export class UserService {
@@ -17,7 +17,10 @@ export class UserService {
   protected telegramUsersDb: DatabaseService['telegramUser'];
   protected googleUsersDb: DatabaseService['googleUser'];
 
-  constructor(private dbService: DatabaseService) {
+  constructor(
+    private dbService: DatabaseService,
+    private readonly followService: FollowService,
+  ) {
     this.userBaseDb = dbService.userBase;
     this.emailUsersDb = dbService.emailUser;
     this.telegramUsersDb = dbService.telegramUser;
@@ -31,20 +34,40 @@ export class UserService {
         EmailUser: true,
         TelegramUser: true,
         GoogleUser: true,
-        // // TODO: skip take params
-        // followers: true,
-        // following: true,
-        // posts: {
-        //   include: {
-        //     author: true,
-        //     likes: true,
-        //     comments: true,
-        //   },
-        // },
       },
     });
 
     return user;
+  }
+
+  async findUserByIdWithFollow(findId: string, userId: string) {
+    try {
+      const findUser = await this.userBaseDb.findUnique({
+        where: { id: findId },
+        include: {
+          EmailUser: true,
+          TelegramUser: true,
+          GoogleUser: true,
+          followers: true,
+          following: true,
+        },
+      });
+
+      const isFollowing = await this.followService.findFollow(userId, findId);
+      const followerCount = await this.followService.findCountFollowers(findId);
+      const followingCount =
+        await this.followService.findCountFollowing(findId);
+
+      return {
+        ...findUser,
+        isFollowing: !!isFollowing,
+        followerCount,
+        followingCount,
+      };
+    } catch (error) {
+      console.log('Error [findUserByIdWithFollow]', error);
+      throw new BadRequestException(error);
+    }
   }
 
   async findBaseUserByEmailUserId(userId: string) {
