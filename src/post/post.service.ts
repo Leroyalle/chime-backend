@@ -80,10 +80,15 @@ export class PostService {
     return postWithLikeInfo;
   }
 
-  async getAllPostsByUserId(userId: string, page: number, perPage: number) {
+  async getAllPostsByUserId(
+    userId: string,
+    userPostId: string,
+    page: number,
+    perPage: number,
+  ) {
     try {
       const posts = await this.postDb.findMany({
-        where: { authorId: userId },
+        where: { authorId: userPostId },
         include: {
           author: true,
           likes: true,
