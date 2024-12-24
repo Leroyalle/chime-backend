@@ -15,6 +15,7 @@ import { LikeModule } from './like/like.module';
 import { PostModule } from './post/post.module';
 import { CommentModule } from './comment/comment.module';
 import { FollowModule } from './follow/follow.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -37,6 +38,8 @@ import { FollowModule } from './follow/follow.module';
     CommentModule,
 
     FollowModule,
+
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard],
@@ -60,16 +63,19 @@ export class AppModule {
     // console.log(responseInfo)
 
     // полная очистка базы данных
-    // await this.cleanDatabase();
+    // await this.cleanDatabase()
     
   }
 
   async cleanDatabase() {
-    await this.databaseService.verificationCode.deleteMany()
-    await this.databaseService.emailUser.deleteMany()
-    await this.databaseService.telegramUser.deleteMany()
-    await this.databaseService.googleUser.deleteMany()
-    await this.databaseService.userBase.deleteMany()   
+    // await this.databaseService.verificationCode.deleteMany()
+    // await this.databaseService.emailUser.deleteMany()
+    // await this.databaseService.telegramUser.deleteMany()
+    // await this.databaseService.googleUser.deleteMany()
+    // await this.databaseService.userBase.deleteMany()   
+
+    // await this.databaseService.chat.deleteMany()
+    // await this.databaseService.message.deleteMany()
     
     
   }

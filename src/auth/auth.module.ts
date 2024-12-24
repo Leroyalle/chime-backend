@@ -28,7 +28,6 @@ import { FollowModule } from 'src/follow/follow.module';
     PassportModule,
     ConfigModule,
     DatabaseModule,
-    UsersModule,
     EmailModule,
     FollowModule,
 

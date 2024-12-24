@@ -19,7 +19,7 @@ import { FollowService } from 'src/follow/follow.service';
     DatabaseModule,
     HttpModule,
     ConfigModule,
-    FollowModule,
+    // FollowModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

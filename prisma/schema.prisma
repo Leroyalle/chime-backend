@@ -22,8 +22,8 @@ model UserBase {
   banned Boolean @default(false)
   role   String  @default("user")
 
-  about  String?
-  name    String @default("User")
+  about String?
+  name  String  @default("User")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -38,6 +38,10 @@ model UserBase {
 
   followers Follows[] @relation("following")
   following Follows[] @relation("follower")
+  Message   Message[]
+
+  Chat   Chat?   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String?
 }
 
 model EmailUser {
@@ -122,3 +126,37 @@ model Follows {
   followingId String
   following   UserBase @relation("following", fields: [followingId], references: [id])
 }
+
+// _______________________
+
+model Chat {
+  id String @id @default(uuid())
+
+  members  UserBase[]
+  messages Message[]
+
+  createdAt DateTime @default(now())
+
+  
+}
+
+model Message {
+  id     String @id @default(uuid())
+  body   String
+
+  Chat   Chat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String
+
+  UserBase   UserBase @relation(fields: [userBaseId], references: [id], onDelete: Cascade)
+  userBaseId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+}
+
+// id: string,
+// socketId: string,
+// body: string,
+// time: string,
+// userId: string
