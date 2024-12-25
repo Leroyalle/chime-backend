@@ -40,8 +40,7 @@ model UserBase {
   following Follows[] @relation("follower")
   Message   Message[]
 
-  Chat   Chat?   @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  chatId String?
+  Chats Chat[]
 }
 
 model EmailUser {
@@ -131,20 +130,21 @@ model Follows {
 
 model Chat {
   id String @id @default(uuid())
+  name String
+
+  imageUrl String?
 
   members  UserBase[]
   messages Message[]
 
   createdAt DateTime @default(now())
-
-  
 }
 
 model Message {
-  id     String @id @default(uuid())
-  body   String
+  id   String @id @default(uuid())
+  body String
 
-  Chat   Chat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  Chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId String
 
   UserBase   UserBase @relation(fields: [userBaseId], references: [id], onDelete: Cascade)
@@ -152,7 +152,6 @@ model Message {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
 }
 
 // id: string,

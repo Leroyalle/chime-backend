@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Socket } from 'socket.io';
 import { UserService } from 'src/user/user.service';
+import handleWsError from 'utils/utils';
 
 @Injectable()
 export class WsJwtAuthGuard implements CanActivate {
@@ -18,35 +19,37 @@ export class WsJwtAuthGuard implements CanActivate {
         const client: Socket = context.switchToWs().getClient();
         const token = client.handshake.auth?.token;
 
-        if (!token) {
-            client.emit('unauthorized', 'Token is missing');
-            client.disconnect(true)
-            console.log('Token is missing')
-            return
-        }
+        // console.log(token);
+
+        if (!token) return handleWsError(client, 'Invalid token')
+
 
         try {
             const payload = this.jwtService.verify(token, { secret: this.secretKey })
-            // console.log('JWT Payload:', payload)
+            console.log('JWT Payload:', payload)
 
-            const user = await this.userService.findUserById(payload.id)
-
-            if (!user) {
-                client.emit('unauthorized', 'User not found');
-                return
+            if(!payload){
+                return handleWsError(client, 'Invalid token')
             }
 
-            client.data.userBaseId = payload.id
+            if (!client.userData) {
+                client.userData = {} 
+            }
 
 
-            console.log("client data", client.data)
+            // console.log(payload.id)
+            const user = await this.userService.findUserById(payload.id);
+            // console.log(user)
+
+            if (!user) return handleWsError(client, 'User not found')
+
+            client.userData.userBaseId = payload.id
             return true
         } catch (err) {
-            console.error('Token verification failed');
-            client.emit('unauthorized', 'Invalid token');
-            client.disconnect(true)
-            console.log('Invalid token')
-            // throw new UnauthorizedException('Invalid token');
+            handleWsError(client, 'Invalid token')
+            // console.error('JWT error:', err)
+            
+            return false
         }
     }
 }

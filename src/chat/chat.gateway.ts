@@ -6,6 +6,15 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { WsJwtAuthGuard } from 'src/auth/strategies/ws.strategy';
 import { UserService } from 'src/user/user.service';
 import { DatabaseService } from 'src/database/database.service';
+import handleWsError from 'utils/utils';
+
+declare module 'socket.io' {
+  interface Socket {
+    userData: {
+      userBaseId?: string
+    };
+  }
+}
 
 export interface Message {
   id: string,
@@ -22,7 +31,8 @@ export interface Message {
 })
 @UseGuards(WsJwtAuthGuard)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
-  chatId = "46369394-7361-48b9-83fd-a0dec87cd56b"
+
+  private connectedSockets: string[] = []
 
   constructor(private readonly chatService: ChatService,
     private readonly userService: UserService,
@@ -34,93 +44,176 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   private users: Socket[] = [];
 
 
-  handleConnection(client: any) {
-    // console.log(` --- Client connected: ${client.id}`);
+  handleConnection(@ConnectedSocket() client: Socket) {
+    console.log(` --- Client connected: ${client.id}`)
+
+    // console.log(client.data.userBaseId)
+
+    // client.disconnect()
+
+    // this.connectedSockets.push(client.id)
+
+    // this.server.emit('checkData')
   }
 
-  handleDisconnect(client: Socket) {
-    // console.log(`--- Client disconnected: ${client.id}`);
-    // delete this.players[client.id];
+  handleDisconnect(@ConnectedSocket() client: Socket) {
+    console.log(`--- Client disconnected: ${client.id}`);
+    this.connectedSockets = this.connectedSockets.filter(id => id !== client.id)
 
+    client.disconnect()
   }
 
 
 
   @SubscribeMessage('checkData')
-  async connect(@ConnectedSocket() client: Socket) {
-    console.log(client.data.userBaseId)
+  async connect(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
+    // console.log(client.data.userBaseId)
+    const userBase = await this.userService.findUserById(client.userData.userBaseId)
+    // console.log(userBase)\
+
+    console.log(client.userData.userBaseId)
+
+
+    const existingSocketWithUserId = this.connectedSockets.find(ws => ws == client.id)
+
+    console.log(existingSocketWithUserId)
+    if (!existingSocketWithUserId) {
+      this.connectedSockets.push(client.id)
+    }
 
 
 
-    const userBase = await this.userService.findUserById(client.data.userBaseId)
-    console.log(userBase)
+    let chatData = null
+    if (data && data.chatId) {
+      chatData = await this.dbService.chat.findUnique({ where: { id: data.chatId }, include: { members: true } })
+    }
 
-    await this.dbService.chat.update({
+
+    // if (data && data.chatId) {
+    //   console.log("update")
+    //   console.log(data)
+    //   chatData = await this.dbService.chat.update({
+    //     where: {
+    //       id: data.chatId
+    //     },
+    //     data: {
+    //       members: {
+    //         connect: { id: userBase.id }
+    //       }
+    //     },
+    //     include: {
+    //       members: true
+    //     }
+    //   })
+    // }
+
+
+
+    this.server.emit('checkData', { chatData, userChats: userBase.Chats });
+  }
+
+
+  @SubscribeMessage("createChat")
+  async createChat(@ConnectedSocket() client: Socket, @MessageBody() data: { recipientId: string }) {
+    console.log('Received data:', data);
+
+    const UserBase = await this.userService.findUserById(client.userData.userBaseId)
+
+    const existingChat = await this.dbService.chat.findFirst({
       where: {
-        id: this.chatId
+        AND: [
+          { members: { some: { id: UserBase.id } } },
+          { members: { some: { id: data.recipientId } } },
+        ],
       },
-      data: {
-        members: {
-          connect: { id: userBase.id }
-        }
-      }
+      include: {
+        members: true,
+      },
     });
 
+    if (existingChat) {
+      this.server.emit("error", "Chat already exists")
+      client.disconnect(true)
+      return
+    }
 
-    const messages = await this.dbService.message.findMany({
-      where: {
-        chatId: this.chatId
+    if (UserBase.id == data.recipientId) {
+      this.server.emit("error", "Cannot create a chat with yourself")
+      return
+    }
+
+    const randInt = (100 + Math.random() * (100000)).toFixed(0)
+
+    const createdChat = await this.dbService.chat.create({
+
+      data: {
+
+        name: `chat ${randInt}`,
+        imageUrl: `https://avatars.githubusercontent.com/u/${randInt}?v=4`,
+        members: {
+          connect: [{ id: UserBase.id }, { id: data.recipientId }],
+        }
+      },
+      include: {
+        members: true
       }
     })
 
-    this.server.emit('checkData');
-    // this.server.emit('message', messages)
+    this.server.emit('createChat', createdChat);
   }
 
 
 
   @SubscribeMessage("loadMessages")
-  async loadMessages(@ConnectedSocket() client: Socket) {
+  async loadMessages(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
+
+    if (!data && !data?.chatId) {
+      // return handleWsError(client, "Invalid chat")
+
+      return
+    }
+
+
+
     const messages = await this.dbService.message.findMany({
       where: {
-        chatId: this.chatId
+        chatId: data.chatId
       }
     })
 
     this.server.emit('loadMessages', messages)
-
-
-
   }
 
 
   @SubscribeMessage('message')
-  async sendMessage(@ConnectedSocket() client: Socket, @MessageBody() data: { message: string }): Promise<void> {
-    // console.log(`Client`, client);
-    console.log('Received data:', data);
+  async sendMessage(@ConnectedSocket() client: Socket, @MessageBody() data: { message: string, chatId: string }): Promise<void> {
+    console.log('Received data:', data)
 
-    const connectedUserBase = await this.userService.findUserById(client.data.userBaseId)
-    console.log(connectedUserBase)
+    const UserBase = await this.userService.findUserById(client.userData.userBaseId)
+    // console.log(UserBase)
 
     const newMessage = await this.dbService.message.create({
       data: {
-        chatId: "46369394-7361-48b9-83fd-a0dec87cd56b",
-        userBaseId: connectedUserBase.id,
+        chatId: data.chatId,
+        userBaseId: UserBase.id,
         body: data.message
       }
     })
 
-    //  { messages: [newMessage], onload: false}
     this.server.emit('message', [newMessage]);
   }
 
+
+
+  // _________________________
+
+
+
   async onModuleInit() {
-    // await this.dbService.chat.deleteMany()
-
-
-    // const createdChat = await this.dbService.chat.create({data: {}})
-    // console.log(createdChat)
-
+    setInterval(() => {
+      console.log('Active sockets:', this.connectedSockets);
+      // console.log('Active sockets:', this.connectedSockets.length);
+    }, 10000)
 
   }
 

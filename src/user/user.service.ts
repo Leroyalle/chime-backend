@@ -34,8 +34,9 @@ export class UserService {
         EmailUser: true,
         TelegramUser: true,
         GoogleUser: true,
+        Chats: true
       },
-    });
+    })
 
     return user;
   }
@@ -81,7 +82,7 @@ export class UserService {
     return await this.findUserById(emailUser.userBaseId);
   }
 
-  async switchBanUser(userId: number | string) {}
+  async switchBanUser(userId: number | string) { }
 
   async findAll(query: usersSearchDto) {
     let { page = '1', limit = '15' } = query;
