@@ -8,14 +8,19 @@ import { UserId } from 'src/userid.decorator';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
+  @Get()
+  async getUserChats(@UserId() userId: string) {
+    return this.chatService.getUserChats(userId);
+  }
+
   @Get(':id')
-  async getChatMessagesById(
+  async getChatMessagesByChatId(
     @UserId() userId: string,
     @Param('id') chatId: string,
     @Query('page') page: number = 1,
     @Query('perPage') perPage: number = 10,
   ) {
-    return this.chatService.getChatMessagesById(
+    return this.chatService.getChatMessagesByChatId(
       userId,
       chatId,
       +page,

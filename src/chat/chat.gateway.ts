@@ -104,13 +104,13 @@ export class ChatGateway
       this.connectedSockets.push(client.id);
     }
 
-    let chatData = null;
-    if (data && data.chatId) {
-      chatData = await this.dbService.chat.findUnique({
-        where: { id: data.chatId },
-        include: { members: true },
-      });
-    }
+    // let chatData = null;
+    // if (data && data.chatId) {
+    //   chatData = await this.dbService.chat.findUnique({
+    //     where: { id: data.chatId },
+    //     include: { members: true },
+    //   });
+    // }
 
     // if (data && data.chatId) {
     //   console.log("update")
@@ -129,11 +129,11 @@ export class ChatGateway
     //     }
     //   })
     // }
-
-    this.server.emit('checkData', { chatData, userChats: userBase.Chats });
+    // chatData,
+    this.server.emit('checkData', userBase.Chats);
   }
 
-  @SubscribeMessage('createChat')
+  @SubscribeMessage('chat:create')
   async createChat(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { recipientId: string },
@@ -157,8 +157,7 @@ export class ChatGateway
     });
 
     if (existingChat) {
-      this.server.emit('error', 'Chat already exists');
-      client.disconnect(true);
+      this.server.emit('chat:create', existingChat);
       return;
     }
 
@@ -182,7 +181,7 @@ export class ChatGateway
       },
     });
 
-    this.server.emit('createChat', createdChat);
+    this.server.emit('chat:create', createdChat);
   }
 
   @SubscribeMessage('loadMessages')

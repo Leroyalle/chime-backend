@@ -11,7 +11,26 @@ export class ChatService {
     this.messageDb = databaseService.message;
   }
 
-  async getChatMessagesById(
+  async getUserChats(userId: string) {
+    try {
+      const data = await this.chatDb.findMany({
+        where: {
+          members: {
+            some: {
+              id: userId,
+            },
+          },
+        },
+      });
+
+      console.log('CHATS:', data);
+      return data;
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getChatMessagesByChatId(
     userId: string,
     chatId: string,
     page: number,
@@ -29,8 +48,8 @@ export class ChatService {
         },
       });
 
-      const totalMessages = await this.messageDb.count({ where: { chatId } });
-      const totalPages = Math.ceil(totalMessages / perPage);
+      const totalItems = await this.messageDb.count({ where: { chatId } });
+      const totalPages = Math.ceil(totalItems / perPage);
 
       return {
         data: messages,

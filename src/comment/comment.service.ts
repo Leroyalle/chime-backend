@@ -62,8 +62,8 @@ export class CommentService {
         take: perPage,
       });
 
-      const totalComments = await this.commentDb.count({ where: { userId } });
-      const totalPages = Math.ceil(totalComments / perPage);
+      const totalItems = await this.commentDb.count({ where: { userId } });
+      const totalPages = Math.ceil(totalItems / perPage);
       return {
         data: comments,
         currentPage: page,
