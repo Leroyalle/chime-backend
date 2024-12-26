@@ -1,6 +1,44 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class ChatService {
+  protected chatDb: DatabaseService['chat'];
+  protected messageDb: DatabaseService['message'];
 
+  constructor(private readonly databaseService: DatabaseService) {
+    this.chatDb = databaseService.chat;
+    this.messageDb = databaseService.message;
+  }
+
+  async getChatMessagesById(
+    userId: string,
+    chatId: string,
+    page: number,
+    perPage: number,
+  ) {
+    try {
+      const messages = await this.messageDb.findMany({
+        where: {
+          chatId,
+        },
+        skip: (page - 1) * perPage,
+        take: perPage,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      const totalMessages = await this.messageDb.count({ where: { chatId } });
+      const totalPages = Math.ceil(totalMessages / perPage);
+
+      return {
+        data: messages,
+        currentPage: page,
+        totalPages,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 }
