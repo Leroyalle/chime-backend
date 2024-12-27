@@ -130,14 +130,18 @@ model Follows {
 
 model Chat {
   id String @id @default(uuid())
-  name String
 
+  name     String
   imageUrl String?
+
+  lastMessageAt DateTime?
 
   members  UserBase[]
   messages Message[]
 
   createdAt DateTime @default(now())
+
+  @@index([lastMessageAt])
 }
 
 model Message {

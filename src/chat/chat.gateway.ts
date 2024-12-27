@@ -11,17 +11,12 @@ import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
 import {
   InternalServerErrorException,
-  NotAcceptableException,
   OnModuleInit,
-  Req,
-  UseFilters,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { WsJwtAuthGuard } from 'src/auth/strategies/ws.strategy';
 import { UserService } from 'src/user/user.service';
 import { DatabaseService } from 'src/database/database.service';
-import handleWsError from 'utils/utils';
 
 declare module 'socket.io' {
   interface Socket {
@@ -91,9 +86,9 @@ export class ChatGateway
     const userBase = await this.userService.findUserById(
       client.userData.userBaseId,
     );
-    // console.log(userBase)\
+    // console.log(userBase)
 
-    console.log(client.userData.userBaseId);
+    console.log('ID', client.userData.userBaseId);
 
     const existingSocketWithUserId = this.connectedSockets.find(
       (ws) => ws == client.id,
@@ -103,6 +98,19 @@ export class ChatGateway
     if (!existingSocketWithUserId) {
       this.connectedSockets.push(client.id);
     }
+
+    const chats = await this.dbService.chat.findMany({
+      where: {
+        members: {
+          some: {
+            id: userBase.id,
+          },
+        },
+      },
+      orderBy: {
+        lastMessageAt: 'desc',
+      },
+    });
 
     // let chatData = null;
     // if (data && data.chatId) {
@@ -130,7 +138,7 @@ export class ChatGateway
     //   })
     // }
     // chatData,
-    this.server.emit('checkData', userBase.Chats);
+    this.server.emit('checkData', chats);
   }
 
   @SubscribeMessage('chat:create')
@@ -181,7 +189,7 @@ export class ChatGateway
       },
     });
 
-    this.server.emit('chat:create', createdChat);
+    this.server.emit('chat:create', createdChat.id);
   }
 
   @SubscribeMessage('loadMessages')
@@ -222,6 +230,15 @@ export class ChatGateway
           chatId: data.chatId,
           userBaseId: UserBase.id,
           body: data.message,
+        },
+      });
+
+      await this.dbService.chat.update({
+        where: {
+          id: data.chatId,
+        },
+        data: {
+          lastMessageAt: new Date(),
         },
       });
 

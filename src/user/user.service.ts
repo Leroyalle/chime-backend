@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { IGoogleAuthDto, ITelegramAuthDto } from 'src/auth/dto/entry-dto';
 import { RegisterDto } from 'src/auth/dto/register-dto';
@@ -34,9 +38,13 @@ export class UserService {
         EmailUser: true,
         TelegramUser: true,
         GoogleUser: true,
-        Chats: true
+        Chats: true,
       },
-    })
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     return user;
   }
@@ -53,6 +61,10 @@ export class UserService {
           following: true,
         },
       });
+
+      if (!findUser) {
+        throw new NotFoundException('User not found');
+      }
 
       const isFollowing = await this.followService.findFollow(userId, findId);
       const followerCount = await this.followService.findCountFollowers(findId);
@@ -82,7 +94,7 @@ export class UserService {
     return await this.findUserById(emailUser.userBaseId);
   }
 
-  async switchBanUser(userId: number | string) { }
+  async switchBanUser(userId: number | string) {}
 
   async findAll(query: usersSearchDto) {
     let { page = '1', limit = '15' } = query;

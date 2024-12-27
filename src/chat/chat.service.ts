@@ -21,6 +21,17 @@ export class ChatService {
             },
           },
         },
+        include: {
+          messages: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
+          },
+        },
+        orderBy: {
+          lastMessageAt: 'desc',
+        },
       });
 
       console.log('CHATS:', data);
