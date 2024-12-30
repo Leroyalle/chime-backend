@@ -165,7 +165,7 @@ export class ChatGateway
     });
 
     if (existingChat) {
-      this.server.emit('chat:create', existingChat);
+      this.server.emit('chat:create', existingChat.id);
       return;
     }
 

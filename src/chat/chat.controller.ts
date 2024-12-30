@@ -13,6 +13,11 @@ export class ChatController {
     return this.chatService.getUserChats(userId);
   }
 
+  @Get('info/:id')
+  async getChatById(@UserId() userId: string, @Param('id') chatId: string) {
+    return this.chatService.getChatById(userId, chatId);
+  }
+
   @Get(':id')
   async getChatMessagesByChatId(
     @UserId() userId: string,
