@@ -44,6 +44,62 @@ export class FollowService {
     return { message: `Unfollowed successfully on UserBase ${unFollowingId} ` };
   }
 
+  async findFollowersById({
+    userId,
+    page = 1,
+    perPage = 10,
+  }: {
+    userId: string;
+    page: number;
+    perPage: number;
+  }) {
+    const followers = await this.followDb.findMany({
+      where: {
+        followingId: userId,
+      },
+      include: {
+        follower: true,
+      },
+      take: perPage,
+      skip: (page - 1) * perPage,
+    });
+
+    const totalItems = await this.findCountFollowers(userId);
+    const totalPages = Math.ceil(totalItems / perPage);
+
+    return { data: followers, totalItems, totalPages };
+  }
+
+  async findFollowingById({
+    userId,
+    page = 1,
+    perPage = 10,
+  }: {
+    userId: string;
+    page: number;
+    perPage: number;
+  }) {
+    const following = await this.followDb.findMany({
+      where: {
+        followerId: userId,
+      },
+      include: {
+        following: true,
+      },
+      take: perPage,
+      skip: (page - 1) * perPage,
+    });
+
+    const totalItems = await this.findCountFollowing(userId);
+    const totalPages = Math.ceil(totalItems / perPage);
+
+    return {
+      data: following,
+      totalItems,
+      totalPages,
+    };
+  }
+
   async findFollow(followerId: string, followingId: string) {
     return await this.followDb.findFirst({
       where: {
@@ -52,15 +108,15 @@ export class FollowService {
     });
   }
 
-  async findCountFollowers(userId: string) {
+  async findCountFollowers(followingId: string) {
     return await this.followDb.count({
-      where: { followingId: userId },
+      where: { followingId },
     });
   }
 
-  async findCountFollowing(userId: string) {
+  async findCountFollowing(followerId: string) {
     return await this.followDb.count({
-      where: { followerId: userId },
+      where: { followerId },
     });
   }
 }
