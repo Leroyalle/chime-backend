@@ -13,6 +13,7 @@ import { usersSearchDto } from './dto/usersSearch-dto';
 import { adminData } from './entities/admin.entities';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { FollowService } from 'src/follow/follow.service';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class UserService {
@@ -221,6 +222,7 @@ export class EmailUsersService extends UserService {
       usersToCreate.map(async (user) => {
         const newUserBase = await this.userBaseDb.create({
           data: {
+            alias: nanoid(8),
             role: user.role,
             name: user.role,
             EmailUser: {
@@ -266,13 +268,16 @@ export class EmailUsersService extends UserService {
     const existingUser = await this.findOne(createUserDto.email);
     console.log(existingUser);
 
-    if (existingUser) throw new BadRequestException(`User already exists`);
+    if (existingUser) {
+      throw new BadRequestException(`User already exists`);
+    }
 
     const lastUserId = (await this.userBaseDb.count()) + 1;
 
     const createdUser = await this.userBaseDb.create({
       data: {
         name: 'User' + lastUserId,
+        alias: nanoid(8),
         EmailUser: {
           create: {
             email: createUserDto.email,
@@ -330,6 +335,7 @@ export class TelegramUsersService extends UserService {
 
     const createdUser = await this.userBaseDb.create({
       data: {
+        alias: nanoid(8),
         TelegramUser: {
           create: {
             telegramId: telegramData.id.toString(),
@@ -373,6 +379,7 @@ export class GoogleUsersService extends UserService {
 
     const createdUser = await this.userBaseDb.create({
       data: {
+        alias: nanoid(8),
         GoogleUser: {
           create: {
             email: googleData.email,

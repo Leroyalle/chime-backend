@@ -52,6 +52,19 @@ export class FollowController {
     });
   }
 
+  @Get('friends/:id')
+  findFriends(
+    @Param('id') userId: string,
+    @Query('page') page: number = 1,
+    @Query('perPage') perPage: number = 20,
+  ) {
+    return this.followService.findFriendsById({
+      userId,
+      page: +page,
+      perPage: +perPage,
+    });
+  }
+
   @Delete(':id')
   unFollow(@Param('id') unFollowingId: string, @UserId() userId: string) {
     if (!unFollowingId) {

@@ -22,8 +22,12 @@ model UserBase {
   banned Boolean @default(false)
   role   String  @default("user")
 
-  about String?
-  name  String  @default("User")
+  about    String?
+  age      Int?
+  location String?
+  status   String?
+  name     String  @default("User")
+  alias    String  @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

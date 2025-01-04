@@ -36,8 +36,6 @@ export class PostController {
     @Query('page') page: number = 1,
     @Query('perPage') perPage: number = 10,
   ) {
-    console.log(userId);
-
     return this.postService.getAllPosts(userId, +page, +perPage);
   }
 

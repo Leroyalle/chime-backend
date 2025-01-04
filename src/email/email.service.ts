@@ -3,20 +3,17 @@ import * as nodemailer from 'nodemailer';
 import { DatabaseService } from 'src/database/database.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
 
-  constructor(
-    private databaseService: DatabaseService,
-  ) {
+  constructor(private databaseService: DatabaseService) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       secret: false,
       auth: {
-        user: 'vashilo.artem7@gmail.com',//почта с которой идет отправка
-        pass: 'haxk tuyb wxrs usmj',//ключ который берется из google auth
+        user: 'vashilo.artem7@gmail.com', //почта с которой идет отправка
+        pass: 'haxk tuyb wxrs usmj', //ключ который берется из google auth
       },
     });
   }
@@ -37,9 +34,7 @@ export class EmailService {
     } catch (error) {
       console.error('Error sending email:', error);
     }
-
   }
-
 
   async createVerificationCode(userId: string, code: string) {
     const expiresAt = new Date();
@@ -56,32 +51,26 @@ export class EmailService {
 
   async verifyCode(userId: string, code: string): Promise<boolean> {
     console.log('verifyCode', userId, code);
-    const verificationCode = await this.databaseService.verificationCode.findFirst({
-      where: {
-        userId,
-        code,
-        expiresAt: {
-          gt: new Date(),
+    const verificationCode =
+      await this.databaseService.verificationCode.findFirst({
+        where: {
+          userId,
+          code,
+          expiresAt: {
+            gt: new Date(),
+          },
         },
-      },
-    })
+      });
 
     if (verificationCode) {
       await this.databaseService.verificationCode.delete({
         where: { id: verificationCode.id },
-      })
+      });
 
-      return true
+      return true;
     }
-    return false
+    return false;
   }
-
-
-
-
-
-
-
 
   async sendReportOnEmail(email: string, filePath: string) {
     const mailOptions: nodemailer.SendMailOptions = {
@@ -104,5 +93,4 @@ export class EmailService {
       console.error(`Error sending report to ${email}:`, error);
     }
   }
-
 }
