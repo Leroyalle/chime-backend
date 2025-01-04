@@ -12,6 +12,7 @@ export class FollowService {
 
   constructor(private readonly databaseService: DatabaseService) {
     this.followDb = databaseService.follows;
+    this.userBaseDb = databaseService.userBase;
   }
 
   async follow(followingId: string, userId: string) {
