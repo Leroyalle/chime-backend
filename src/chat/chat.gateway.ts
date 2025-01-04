@@ -192,6 +192,11 @@ export class ChatGateway
     this.server.emit('chat:create', createdChat.id);
   }
 
+  @SubscribeMessage('post:new')
+  async broadcastNewPost(@ConnectedSocket() client: Socket) {
+    client.broadcast.emit('post:new', true);
+  }
+
   @SubscribeMessage('loadMessages')
   async loadMessages(
     @ConnectedSocket() client: Socket,
