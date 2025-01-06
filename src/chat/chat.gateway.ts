@@ -42,15 +42,14 @@ export interface Message {
 })
 @UseGuards(WsJwtAuthGuard)
 export class ChatGateway
-  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
-{
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
   private connectedSockets: string[] = [];
 
   constructor(
     private readonly chatService: ChatService,
     private readonly userService: UserService,
     private readonly dbService: DatabaseService,
-  ) {}
+  ) { }
 
   @WebSocketServer()
   server: Server;
@@ -58,14 +57,7 @@ export class ChatGateway
 
   handleConnection(@ConnectedSocket() client: Socket) {
     console.log(` --- Client connected: ${client.id}`);
-
-    // console.log(client.data.userBaseId)
-
-    // client.disconnect()
-
-    // this.connectedSockets.push(client.id)
-
-    // this.server.emit('checkData')
+    this.connectedSockets.push(client.id)
   }
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
@@ -110,34 +102,8 @@ export class ChatGateway
       orderBy: {
         lastMessageAt: 'desc',
       },
-    });
+    })
 
-    // let chatData = null;
-    // if (data && data.chatId) {
-    //   chatData = await this.dbService.chat.findUnique({
-    //     where: { id: data.chatId },
-    //     include: { members: true },
-    //   });
-    // }
-
-    // if (data && data.chatId) {
-    //   console.log("update")
-    //   console.log(data)
-    //   chatData = await this.dbService.chat.update({
-    //     where: {
-    //       id: data.chatId
-    //     },
-    //     data: {
-    //       members: {
-    //         connect: { id: userBase.id }
-    //       }
-    //     },
-    //     include: {
-    //       members: true
-    //     }
-    //   })
-    // }
-    // chatData,
     this.server.emit('checkData', chats);
   }
 
@@ -197,25 +163,28 @@ export class ChatGateway
     client.broadcast.emit('post:new', true);
   }
 
-  @SubscribeMessage('loadMessages')
-  async loadMessages(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { chatId: string },
-  ) {
-    if (!data && !data?.chatId) {
-      // return handleWsError(client, "Invalid chat")
+  // @SubscribeMessage('loadMessages')
+  // async loadMessages(
+  //   @ConnectedSocket() client: Socket,
+  //   @MessageBody() data: { chatId: string },
+  // ) {
+  //   if (!data && !data?.chatId) {
+  //     // return handleWsError(client, "Invalid chat")
 
-      return;
-    }
+  //     return;
+  //   }
 
-    const messages = await this.dbService.message.findMany({
-      where: {
-        chatId: data.chatId,
-      },
-    });
+  //   const messages = await this.dbService.message.findMany({
+  //     where: {
+  //       chatId: data.chatId,
+  //     },
+  //     include:{
+  //       UserBase: true
+  //     }
+  //   });
 
-    this.server.emit('loadMessages', messages);
-  }
+  //   this.server.emit('loadMessages', messages);
+  // }
 
   @SubscribeMessage('messages:post')
   async sendMessage(
@@ -236,6 +205,14 @@ export class ChatGateway
           userBaseId: UserBase.id,
           body: data.message,
         },
+        include: {
+          UserBase:{
+            select:{
+              id: true,
+              name: true,
+            }
+          },
+        },
       });
 
       await this.dbService.chat.update({
@@ -252,12 +229,127 @@ export class ChatGateway
       this.server.emit('messages:get', {
         chatId: data.chatId,
         message: newMessage,
+        senderName: UserBase.name,
       });
     } catch (error) {
       console.log('Error [sendMessage]', error);
       throw new InternalServerErrorException(error.message);
     }
   }
+
+
+
+
+  @SubscribeMessage('messages:delete')
+  async deleteMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { messageId: string },
+  ) {
+
+    try {
+
+      console.log(data)
+
+
+      //FIXME сделать проверку является ли сообщение пользователя этого чата
+
+
+      const existingMessage = await this.dbService.message.findUnique({
+        where: {
+          id: data.messageId,
+        },
+
+      })
+
+      if (!existingMessage) {
+        console.log('Message not found')
+        return
+      }
+
+      const deletedMessage = await this.dbService.message.delete({
+        where: {
+          id: data.messageId,
+        },
+      })
+
+
+
+
+      // _______Client Emit
+
+      this.server.emit('message:delete', {
+        chatId: deletedMessage.chatId,
+        messageId: deletedMessage.id,
+      });
+
+
+
+
+    } catch (error) {
+      console.log('Error [deleteMessage]', error);
+      throw new InternalServerErrorException(error.message);
+    }
+
+
+  }
+
+
+
+  @SubscribeMessage('messages:patch')
+  async patchMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { messageId: string, patchedMessageBody: string },
+  ) {
+    try {
+      console.log(data)
+      //FIXME сделать проверку является ли сообщение пользователя этого чата
+
+      const existingMessage = await this.dbService.message.findUnique({
+        where: {
+          id: data.messageId,
+        },
+      })
+
+      if (!existingMessage) {
+        console.log('Message not found')
+        return
+      }
+
+      const patchedMessage = await this.dbService.message.update({
+        where: {
+          id: data.messageId,
+        },
+        data: {
+          body: data.patchedMessageBody
+        }
+      })
+
+
+
+
+      // _______Client Emit
+
+      // this.server.emit('messages:patch', {
+      //   // chatId: data.chatId,
+      //   message: patchedMessage,
+      // });
+
+
+
+
+    } catch (error) {
+      console.log('Error [patchMessage]', error);
+      throw new InternalServerErrorException(error.message);
+    }
+
+
+  }
+
+
+
+
+
+
 
   // _________________________
 

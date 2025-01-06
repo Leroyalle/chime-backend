@@ -100,6 +100,15 @@ export class ChatService {
         orderBy: {
           createdAt: 'desc',
         },
+
+        include: {
+          UserBase: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       });
 
       const totalItems = await this.messageDb.count({ where: { chatId } });
