@@ -1,5 +1,6 @@
 node_modules
 dist
+dev.db
 # /uploads/*
 # !/uploads/.keep
 # Keep environment variables out of version control

@@ -9,11 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
-import {
-  InternalServerErrorException,
-  OnModuleInit,
-  UseGuards,
-} from '@nestjs/common';
+import { InternalServerErrorException, OnModuleInit, UseGuards } from '@nestjs/common';
 import { WsJwtAuthGuard } from 'src/auth/strategies/ws.strategy';
 import { UserService } from 'src/user/user.service';
 import { DatabaseService } from 'src/database/database.service';
@@ -41,15 +37,14 @@ export interface Message {
   },
 })
 @UseGuards(WsJwtAuthGuard)
-export class ChatGateway
-  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
   private connectedSockets: string[] = [];
 
   constructor(
     private readonly chatService: ChatService,
     private readonly userService: UserService,
     private readonly dbService: DatabaseService,
-  ) { }
+  ) {}
 
   @WebSocketServer()
   server: Server;
@@ -57,34 +52,25 @@ export class ChatGateway
 
   handleConnection(@ConnectedSocket() client: Socket) {
     console.log(` --- Client connected: ${client.id}`);
-    this.connectedSockets.push(client.id)
+    this.connectedSockets.push(client.id);
   }
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
     console.log(`--- Client disconnected: ${client.id}`);
-    this.connectedSockets = this.connectedSockets.filter(
-      (id) => id !== client.id,
-    );
+    this.connectedSockets = this.connectedSockets.filter((id) => id !== client.id);
 
     client.disconnect();
   }
 
   @SubscribeMessage('checkData')
-  async connect(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { chatId: string },
-  ) {
+  async connect(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
     // console.log(client.data.userBaseId)
-    const userBase = await this.userService.findUserById(
-      client.userData.userBaseId,
-    );
+    const userBase = await this.userService.findUserById(client.userData.userBaseId);
     // console.log(userBase)
 
     console.log('ID', client.userData.userBaseId);
 
-    const existingSocketWithUserId = this.connectedSockets.find(
-      (ws) => ws == client.id,
-    );
+    const existingSocketWithUserId = this.connectedSockets.find((ws) => ws == client.id);
 
     console.log(existingSocketWithUserId);
     if (!existingSocketWithUserId) {
@@ -102,7 +88,7 @@ export class ChatGateway
       orderBy: {
         lastMessageAt: 'desc',
       },
-    })
+    });
 
     this.server.emit('checkData', chats);
   }
@@ -114,9 +100,7 @@ export class ChatGateway
   ) {
     console.log('Received data:', data);
 
-    const UserBase = await this.userService.findUserById(
-      client.userData.userBaseId,
-    );
+    const UserBase = await this.userService.findUserById(client.userData.userBaseId);
 
     const existingChat = await this.dbService.chat.findFirst({
       where: {
@@ -194,9 +178,7 @@ export class ChatGateway
     try {
       console.log('Received data:', data);
 
-      const UserBase = await this.userService.findUserById(
-        client.userData.userBaseId,
-      );
+      const UserBase = await this.userService.findUserById(client.userData.userBaseId);
       // console.log(UserBase)
 
       const newMessage = await this.dbService.message.create({
@@ -206,11 +188,11 @@ export class ChatGateway
           body: data.message,
         },
         include: {
-          UserBase:{
-            select:{
+          UserBase: {
+            select: {
               id: true,
               name: true,
-            }
+            },
           },
         },
       });
@@ -237,43 +219,32 @@ export class ChatGateway
     }
   }
 
-
-
-
   @SubscribeMessage('messages:delete')
   async deleteMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { messageId: string },
   ) {
-
     try {
+      console.log(data);
 
-      console.log(data)
-
-
-      //FIXME сделать проверку является ли сообщение пользователя этого чата
-
+      //FIXME: сделать проверку является ли сообщение пользователя этого чата
 
       const existingMessage = await this.dbService.message.findUnique({
         where: {
           id: data.messageId,
         },
-
-      })
+      });
 
       if (!existingMessage) {
-        console.log('Message not found')
-        return
+        console.log('Message not found');
+        return;
       }
 
       const deletedMessage = await this.dbService.message.delete({
         where: {
           id: data.messageId,
         },
-      })
-
-
-
+      });
 
       // _______Client Emit
 
@@ -281,38 +252,30 @@ export class ChatGateway
         chatId: deletedMessage.chatId,
         messageId: deletedMessage.id,
       });
-
-
-
-
     } catch (error) {
       console.log('Error [deleteMessage]', error);
       throw new InternalServerErrorException(error.message);
     }
-
-
   }
-
-
 
   @SubscribeMessage('messages:patch')
   async patchMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { messageId: string, patchedMessageBody: string },
+    @MessageBody() data: { messageId: string; patchedMessageBody: string },
   ) {
     try {
-      console.log(data)
+      console.log(data);
       //FIXME сделать проверку является ли сообщение пользователя этого чата
 
       const existingMessage = await this.dbService.message.findUnique({
         where: {
           id: data.messageId,
         },
-      })
+      });
 
       if (!existingMessage) {
-        console.log('Message not found')
-        return
+        console.log('Message not found');
+        return;
       }
 
       const patchedMessage = await this.dbService.message.update({
@@ -320,12 +283,9 @@ export class ChatGateway
           id: data.messageId,
         },
         data: {
-          body: data.patchedMessageBody
-        }
-      })
-
-
-
+          body: data.patchedMessageBody,
+        },
+      });
 
       // _______Client Emit
 
@@ -333,23 +293,11 @@ export class ChatGateway
       //   // chatId: data.chatId,
       //   message: patchedMessage,
       // });
-
-
-
-
     } catch (error) {
       console.log('Error [patchMessage]', error);
       throw new InternalServerErrorException(error.message);
     }
-
-
   }
-
-
-
-
-
-
 
   // _________________________
 
