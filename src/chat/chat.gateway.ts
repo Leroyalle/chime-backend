@@ -93,55 +93,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     this.server.emit('checkData', chats);
   }
 
-  @SubscribeMessage('chat:create')
-  async createChat(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { recipientId: string },
-  ) {
-    console.log('Received data:', data);
-
-    const UserBase = await this.userService.findUserById(client.userData.userBaseId);
-
-    const existingChat = await this.dbService.chat.findFirst({
-      where: {
-        AND: [
-          { members: { some: { id: UserBase.id } } },
-          { members: { some: { id: data.recipientId } } },
-        ],
-      },
-      include: {
-        members: true,
-      },
-    });
-
-    if (existingChat) {
-      this.server.emit('chat:create', existingChat.id);
-      return;
-    }
-
-    if (UserBase.id == data.recipientId) {
-      this.server.emit('error', 'Cannot create a chat with yourself');
-      return;
-    }
-
-    const randInt = (100 + Math.random() * 100000).toFixed(0);
-
-    const createdChat = await this.dbService.chat.create({
-      data: {
-        name: `chat ${randInt}`,
-        imageUrl: `https://avatars.githubusercontent.com/u/${randInt}?v=4`,
-        members: {
-          connect: [{ id: UserBase.id }, { id: data.recipientId }],
-        },
-      },
-      include: {
-        members: true,
-      },
-    });
-
-    this.server.emit('chat:create', createdChat.id);
-  }
-
   @SubscribeMessage('post:new')
   async broadcastNewPost(@ConnectedSocket() client: Socket) {
     client.broadcast.emit('post:new', true);

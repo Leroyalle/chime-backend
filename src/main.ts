@@ -1,10 +1,7 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import { join } from 'path';
-
-import * as os from 'os';
-import axios from 'axios';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

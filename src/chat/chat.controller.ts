@@ -18,6 +18,12 @@ export class ChatController {
     return this.chatService.getChatById(userId, chatId);
   }
 
+  @Get('create/:id')
+  async createChat(@UserId() userId: string, @Param('id') recipientId: string) {
+    console.log(userId, recipientId);
+    return this.chatService.createChat(userId, recipientId);
+  }
+
   @Get(':id')
   async getChatMessagesByChatId(
     @UserId() userId: string,
@@ -25,11 +31,6 @@ export class ChatController {
     @Query('page') page: number = 1,
     @Query('perPage') perPage: number = 10,
   ) {
-    return this.chatService.getChatMessagesByChatId(
-      userId,
-      chatId,
-      +page,
-      +perPage,
-    );
+    return this.chatService.getChatMessagesByChatId(userId, chatId, +page, +perPage);
   }
 }
