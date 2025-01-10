@@ -170,6 +170,49 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
   }
 
+  @SubscribeMessage('messages:patch')
+  async updateMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { messageId: string; messageBody: string },
+  ) {
+    try {
+      const findMessage = await this.dbService.message.findFirst({
+        where: {
+          id: data.messageId,
+        },
+      });
+
+      if (!findMessage) {
+        console.log('Message not found');
+        return;
+      }
+
+      const updatedMessage = await this.dbService.message.update({
+        where: {
+          id: data.messageId,
+        },
+        data: {
+          body: data.messageBody,
+        },
+        include: {
+          UserBase: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      this.server.emit('messages:patch', {
+        chatId: updatedMessage.chatId,
+        message: updatedMessage,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
   @SubscribeMessage('messages:delete')
   async deleteMessage(
     @ConnectedSocket() client: Socket,
@@ -199,7 +242,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
       // _______Client Emit
 
-      this.server.emit('message:delete', {
+      this.server.emit('messages:delete', {
         chatId: deletedMessage.chatId,
         messageId: deletedMessage.id,
       });
@@ -209,46 +252,46 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
   }
 
-  @SubscribeMessage('messages:patch')
-  async patchMessage(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { messageId: string; patchedMessageBody: string },
-  ) {
-    try {
-      console.log(data);
-      //FIXME сделать проверку является ли сообщение пользователя этого чата
+  // @SubscribeMessage('messages:patch')
+  // async patchMessage(
+  //   @ConnectedSocket() client: Socket,
+  //   @MessageBody() data: { messageId: string; patchedMessageBody: string },
+  // ) {
+  //   try {
+  //     console.log(data);
+  //     //FIXME сделать проверку является ли сообщение пользователя этого чата
 
-      const existingMessage = await this.dbService.message.findUnique({
-        where: {
-          id: data.messageId,
-        },
-      });
+  //     const existingMessage = await this.dbService.message.findUnique({
+  //       where: {
+  //         id: data.messageId,
+  //       },
+  //     });
 
-      if (!existingMessage) {
-        console.log('Message not found');
-        return;
-      }
+  //     if (!existingMessage) {
+  //       console.log('Message not found');
+  //       return;
+  //     }
 
-      const patchedMessage = await this.dbService.message.update({
-        where: {
-          id: data.messageId,
-        },
-        data: {
-          body: data.patchedMessageBody,
-        },
-      });
+  //     const patchedMessage = await this.dbService.message.update({
+  //       where: {
+  //         id: data.messageId,
+  //       },
+  //       data: {
+  //         body: data.patchedMessageBody,
+  //       },
+  //     });
 
-      // _______Client Emit
+  //     // _______Client Emit
 
-      // this.server.emit('messages:patch', {
-      //   // chatId: data.chatId,
-      //   message: patchedMessage,
-      // });
-    } catch (error) {
-      console.log('Error [patchMessage]', error);
-      throw new InternalServerErrorException(error.message);
-    }
-  }
+  //     // this.server.emit('messages:patch', {
+  //     //   // chatId: data.chatId,
+  //     //   message: patchedMessage,
+  //     // });
+  //   } catch (error) {
+  //     console.log('Error [patchMessage]', error);
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
 
   // _________________________
 
