@@ -23,10 +23,7 @@ export class CommentController {
 
   @Post()
   create(@Body() createCommentDto: CreateCommentDto, @UserId() userId: string) {
-    if (!createCommentDto)
-      throw new BadGatewayException('Fields must be provided');
-
-    console.log(createCommentDto);
+    if (!createCommentDto) throw new BadGatewayException('Fields must be provided');
 
     return this.commentService.create(userId, createCommentDto);
   }
@@ -51,8 +48,12 @@ export class CommentController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCommentDto: UpdateCommentDto) {
-    return this.commentService.update(+id, updateCommentDto);
+  update(
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() updateCommentDto: UpdateCommentDto,
+  ) {
+    return this.commentService.update(userId, id, updateCommentDto);
   }
 
   @Delete(':id')

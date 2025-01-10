@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -22,15 +23,10 @@ export class CommentService {
 
   async create(userId: string, createCommentDto: CreateCommentDto) {
     //TODO not found a post
-    const existingPost = await this.postService.findById(
-      createCommentDto.postId,
-    );
+    const existingPost = await this.postService.findById(createCommentDto.postId);
     console.log(existingPost);
 
-    if (!existingPost)
-      return new NotFoundException(
-        `No post with id ${createCommentDto.postId}`,
-      );
+    if (!existingPost) return new NotFoundException(`No post with id ${createCommentDto.postId}`);
 
     const createdComment = await this.commentDb.create({
       data: {
@@ -79,15 +75,27 @@ export class CommentService {
     return await this.commentDb.findUnique({ where: { id } });
   }
 
-  update(id: number, updateCommentDto: UpdateCommentDto) {
-    return `This action updates a #${id} comment`;
+  async update(userId: string, id: string, updateCommentDto: UpdateCommentDto) {
+    const findComment = await this.commentDb.findUnique({ where: { id } });
+
+    if (!findComment) {
+      return new NotFoundException(`No comment with id ${id}`);
+    }
+
+    if (findComment.userId != userId) {
+      return new BadRequestException(`User is not the author of the comment`);
+    }
+
+    return await this.commentDb.update({
+      where: { id },
+      data: updateCommentDto,
+    });
   }
 
   async delete(postId: string, userId: string) {
     const existingPost = await this.findOne(postId);
 
-    if (!existingPost)
-      return new NotFoundException(`No post with id ${postId}`);
+    if (!existingPost) return new NotFoundException(`No post with id ${postId}`);
     if (existingPost.userId != userId)
       return new NotFoundException(`This is not a post with UserId ${userId}`);
 
