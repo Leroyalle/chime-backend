@@ -57,10 +57,7 @@ export class AuthController {
 }
 
 @Controller('/auth/email')
-export class EmailAuthController
-  extends AuthController
-  implements IAuthController
-{
+export class EmailAuthController extends AuthController implements IAuthController {
   @UseGuards(LocalAuthGuard)
   @Post('/login/admin')
   async loginAdmin(@Body() body: EntryAdminDto, @Request() req) {
@@ -78,17 +75,12 @@ export class EmailAuthController
 
   @Post('/sendCode')
   async sendCode(@Body() body: EntryDto) {
-    const verificationCode = Math.floor(
-      100000 + Math.random() * 900000,
-    ).toString();
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     let user: any = await this.emailUserService.findOne(body.email);
 
     console.log(user);
 
-    if (
-      user &&
-      (user.userBase.role == RolesClass.admin || RolesClass.superAdmin)
-    ) {
+    if (user && (user.userBase.role == RolesClass.admin || RolesClass.superAdmin)) {
       return { checkPassword: true };
     }
 
@@ -100,8 +92,7 @@ export class EmailAuthController
     await this.emailService.createVerificationCode(user.id, verificationCode);
     await this.emailService.sendVerificationCode(user.email, verificationCode);
     return {
-      message:
-        'User registered successfully. Please check your email for the verification code',
+      message: 'User registered successfully. Please check your email for the verification code',
       verified: false,
       userId: user.id,
       checkPassword: false,
@@ -128,15 +119,12 @@ export class EmailAuthController
     console.log(body);
     const result = await this.emailService.verifyCode(body.userId, body.code);
     console.log(result);
-    if (!result)
-      throw new BadRequestException('Invalid or expired verification code');
+    if (!result) throw new BadRequestException('Invalid or expired verification code');
 
     console.log(body.userId);
     // const validUser = await this.usersService.findUserById(body.userId)
 
-    const validUser = await this.usersService.findBaseUserByEmailUserId(
-      body.userId,
-    );
+    const validUser = await this.usersService.findBaseUserByEmailUserId(body.userId);
 
     console.log(validUser);
 
@@ -164,9 +152,7 @@ export class TelegramAuthController extends AuthController {
 export class GoogleAuthController extends AuthController {
   @Post('/login')
   async login(@Body() googleData: IGoogleJwtDto, @Request() req) {
-    const decodedData: IGoogleAuthDto = this.jwtService.decode(
-      googleData.credential,
-    );
+    const decodedData: IGoogleAuthDto = this.jwtService.decode(googleData.credential);
     console.log(decodedData);
 
     const user = await this.googleAuthService.findOrCreate(decodedData);

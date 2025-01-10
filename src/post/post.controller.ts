@@ -22,10 +22,7 @@ export class PostController {
 
   @Post()
   @UseInterceptors(FileInterceptor('postImage'))
-  async createPost(
-    @Body() body: { content: string },
-    @UserId() userId: string,
-  ) {
+  async createPost(@Body() body: { content: string }, @UserId() userId: string) {
     if (!body.content) throw new BadRequestException('Text must be provided');
     return this.postService.createPost(body.content, userId);
   }
@@ -51,12 +48,7 @@ export class PostController {
     @Query('page') page: number = 1,
     @Query('perPage') perPage: number = 10,
   ) {
-    return this.postService.getAllPostsByUserId(
-      userId,
-      userPostId,
-      +page,
-      +perPage,
-    );
+    return this.postService.getAllPostsByUserId(userId, userPostId, +page, +perPage);
   }
 
   @Delete(':id')

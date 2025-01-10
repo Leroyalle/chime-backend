@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 
@@ -70,7 +71,7 @@ export class PostService {
       },
     });
 
-    if (!post) return new NotFoundException('Post not found');
+    if (!post) throw new NotFoundException('Post not found');
 
     const postWithLikeInfo = {
       ...post,
@@ -80,12 +81,7 @@ export class PostService {
     return postWithLikeInfo;
   }
 
-  async getAllPostsByUserId(
-    userId: string,
-    userPostId: string,
-    page: number,
-    perPage: number,
-  ) {
+  async getAllPostsByUserId(userId: string, userPostId: string, page: number, perPage: number) {
     try {
       const posts = await this.postDb.findMany({
         where: { authorId: userPostId },
@@ -122,23 +118,27 @@ export class PostService {
   }
 
   async deletePost(postId: string, userId: string) {
-    const existingPost = await this.postDb.findUnique({
+    const findPost = await this.postDb.findUnique({
       where: {
         id: postId,
       },
     });
 
-    if (!existingPost) return new NotFoundException('Post not found');
+    if (!findPost) throw new NotFoundException('Post not found');
 
-    // TODO fix later
+    if (userId !== findPost.authorId) {
+      throw new BadRequestException('User is not the author of the post');
+    }
 
-    // const transaction = await prisma.$transaction([
-    //   prisma.comment.deleteMany({ where: { postId: id } }),
-    //   prisma.like.deleteMany({ where: { postId: id } }),
-    //   prisma.post.delete({ where: { id } }),
-    // ]);
+    // FIXME: fix later
 
-    // return transaction
+    const transaction = await this.databaseService.$transaction([
+      this.databaseService.comment.deleteMany({ where: { postId } }),
+      this.databaseService.like.deleteMany({ where: { postId } }),
+      this.databaseService.post.delete({ where: { id: postId } }),
+    ]);
+
+    return transaction[2];
   }
 
   async findById(id: string) {

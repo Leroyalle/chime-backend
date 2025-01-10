@@ -42,7 +42,7 @@ export class ChatService {
       });
 
       if (existingChat) {
-        return existingChat.id;
+        return { chatId: existingChat.id };
       }
 
       if (UserBase.id == recipientId) {
@@ -64,7 +64,7 @@ export class ChatService {
         },
       });
 
-      return createdChat.id;
+      return { chatId: createdChat.id };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

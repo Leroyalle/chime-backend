@@ -20,7 +20,6 @@ export class ChatController {
 
   @Get('create/:id')
   async createChat(@UserId() userId: string, @Param('id') recipientId: string) {
-    console.log(userId, recipientId);
     return this.chatService.createChat(userId, recipientId);
   }
 
