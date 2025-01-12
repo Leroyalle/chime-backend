@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { IGoogleAuthDto, ITelegramAuthDto } from 'src/auth/dto/entry-dto';
 import { RegisterDto } from 'src/auth/dto/register-dto';
@@ -69,8 +65,7 @@ export class UserService {
 
       const isFollowing = await this.followService.findFollow(userId, findId);
       const followerCount = await this.followService.findCountFollowers(findId);
-      const followingCount =
-        await this.followService.findCountFollowing(findId);
+      const followingCount = await this.followService.findCountFollowing(findId);
 
       return {
         ...findUser,
@@ -213,9 +208,7 @@ export class EmailUsersService extends UserService {
       user.EmailUser ? [user.EmailUser.email] : [],
     );
 
-    const usersToCreate = userCreateDto.filter(
-      (user) => !existingEmails.includes(user.email),
-    );
+    const usersToCreate = userCreateDto.filter((user) => !existingEmails.includes(user.email));
     console.log(usersToCreate);
 
     const createdUsers = await Promise.all(
@@ -239,9 +232,7 @@ export class EmailUsersService extends UserService {
 
     await Promise.all(
       existingUsers.map(async (existingUser) => {
-        const userDto = userCreateDto.find(
-          (u) => u.email === existingUser.EmailUser?.email,
-        );
+        const userDto = userCreateDto.find((u) => u.email === existingUser.EmailUser?.email);
 
         if (userDto && existingUser.EmailUser?.password) {
           const isPasswordUpdated = await argon2.verify(

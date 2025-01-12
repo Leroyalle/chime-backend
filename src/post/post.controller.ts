@@ -22,9 +22,11 @@ export class PostController {
 
   @Post()
   @UseInterceptors(FileInterceptor('postImage'))
-  async createPost(@Body() body: { content: string }, @UserId() userId: string) {
-    if (!body.content) throw new BadRequestException('Text must be provided');
-    return this.postService.createPost(body.content, userId);
+  async createPost(@Body() body: { content: string; tags?: string }, @UserId() userId: string) {
+    if (!body.content) {
+      throw new BadRequestException('Text must be provided');
+    }
+    return this.postService.createPost(body.content, userId, body.tags && JSON.parse(body.tags));
   }
 
   @Get()

@@ -15,12 +15,20 @@ export class PostService {
     this.postDb = databaseService.post;
   }
 
-  async createPost(content: string, userId: string) {
+  async createPost(content: string, userId: string, tags?: { value: string; label: string }[]) {
     return await this.postDb.create({
       data: {
         content,
-        // imageUrl: filepath ? `/${filepath}` : undefined,
         authorId: userId,
+        tags: {
+          create: tags?.map((tag) => ({
+            value: tag.value,
+            label: tag.label,
+          })),
+        },
+      },
+      include: {
+        tags: true,
       },
     });
   }
@@ -31,6 +39,7 @@ export class PostService {
         author: true,
         likes: true,
         comments: true,
+        tags: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -62,6 +71,7 @@ export class PostService {
       include: {
         author: true,
         likes: true,
+        tags: true,
         comments: {
           include: {
             user: true,
@@ -89,6 +99,7 @@ export class PostService {
           author: true,
           likes: true,
           comments: true,
+          tags: true,
         },
         orderBy: {
           createdAt: 'desc',
