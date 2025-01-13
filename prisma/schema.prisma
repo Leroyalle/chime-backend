@@ -154,6 +154,8 @@ model Chat {
   imageUrl String?
 
   lastMessageAt DateTime?
+  lastMessage   Message?  @relation("lastMessage", fields: [lastMessageId], references: [id])
+  lastMessageId String?   @unique
 
   members  UserBase[]
   messages Message[]
@@ -167,8 +169,10 @@ model Message {
   id   String @id @default(uuid())
   body String
 
-  Chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId String
+
+  isLastMessageIn Chat? @relation("lastMessage")
 
   UserBase   UserBase @relation(fields: [userBaseId], references: [id], onDelete: Cascade)
   userBaseId String

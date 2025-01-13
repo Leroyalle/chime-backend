@@ -82,15 +82,12 @@ export class ChatService {
         },
         include: {
           members: true,
-          messages: {
-            orderBy: {
-              createdAt: 'desc',
-            },
-            take: 1,
-          },
+          lastMessage: true,
         },
         orderBy: {
-          lastMessageAt: 'desc',
+          lastMessage: {
+            createdAt: 'desc',
+          },
         },
       });
 
@@ -101,8 +98,6 @@ export class ChatService {
           .map((member) => member.name)
           .join(', '),
       }));
-
-      console.log('CHATS:', chatsWithName);
       return chatsWithName;
     } catch (error) {
       throw new InternalServerErrorException(error.message);
@@ -117,6 +112,7 @@ export class ChatService {
         },
         include: {
           members: true,
+          lastMessage: true,
         },
       });
 

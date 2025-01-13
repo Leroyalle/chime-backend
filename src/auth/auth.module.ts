@@ -9,18 +9,14 @@ import {
 } from './auth.controller';
 import { AuthService } from './auth.service';
 import { LocalStrategy } from './strategies/local.strategy';
-
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from 'src/database/database.module';
 import { EmailModule } from 'src/email/email.module';
 import { UsersModule } from 'src/user/user.module';
-import {
-  EmailUsersService,
-  TelegramUsersService,
-  UserService,
-} from 'src/user/user.service';
+import { EmailUsersService, TelegramUsersService, UserService } from 'src/user/user.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { FollowModule } from 'src/follow/follow.module';
+import { WsJwtAuthGuard } from './strategies/ws.strategy'; // Импорт гварда
 
 @Module({
   imports: [
@@ -30,23 +26,16 @@ import { FollowModule } from 'src/follow/follow.module';
     DatabaseModule,
     EmailModule,
     FollowModule,
-
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
         signOptions: { expiresIn: '1d' },
       }),
-
       inject: [ConfigService],
     }),
   ],
-  controllers: [
-    AuthController,
-    EmailAuthController,
-    TelegramAuthController,
-    GoogleAuthController,
-  ],
+  controllers: [AuthController, EmailAuthController, TelegramAuthController, GoogleAuthController],
   providers: [
     AuthService,
     LocalStrategy,
@@ -54,6 +43,11 @@ import { FollowModule } from 'src/follow/follow.module';
     TelegramUsersService,
     EmailUsersService,
     UserService,
+    WsJwtAuthGuard, // Добавление гварда в провайдеры
+  ],
+  exports: [
+    JwtModule,
+    WsJwtAuthGuard, // Экспорт гварда
   ],
 })
 export class AuthModule {}

@@ -9,10 +9,17 @@ import {
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
-import { InternalServerErrorException, OnModuleInit, UseGuards } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  NotFoundException,
+  OnModuleInit,
+  UseGuards,
+} from '@nestjs/common';
 import { WsJwtAuthGuard } from 'src/auth/strategies/ws.strategy';
 import { UserService } from 'src/user/user.service';
 import { DatabaseService } from 'src/database/database.service';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 
 declare module 'socket.io' {
   interface Socket {
@@ -36,52 +43,93 @@ export interface Message {
     origin: '*',
   },
 })
-@UseGuards(WsJwtAuthGuard)
+// @UseGuards(WsJwtAuthGuard)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
-  private connectedSockets: string[] = [];
+  // private connectedSockets: string[] = [];
+
+  private activeConnections: Map<string, Set<string>> = new Map();
 
   constructor(
     private readonly chatService: ChatService,
     private readonly userService: UserService,
     private readonly dbService: DatabaseService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   @WebSocketServer()
   server: Server;
   private users: Socket[] = [];
 
-  handleConnection(@ConnectedSocket() client: Socket) {
-    console.log(` --- Client connected: ${client.id}`);
-    this.connectedSockets.push(client.id);
+  async handleConnection(@ConnectedSocket() client: Socket) {
+    const token = client.handshake.auth?.token;
+    if (!token) {
+      client.disconnect(true);
+      return;
+    }
+
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+      });
+
+      if (!payload || !payload.id) {
+        client.disconnect(true);
+        return;
+      }
+
+      const findUser = await this.userService.findUserById(payload.id);
+      if (!findUser) {
+        client.disconnect(true);
+        return;
+      }
+
+      if (!client.userData) {
+        client.userData = {};
+      }
+      client.userData.userBaseId = payload.id;
+
+      if (!this.activeConnections.has(payload.id)) {
+        this.activeConnections.set(payload.id, new Set());
+      }
+      this.activeConnections.get(payload.id).add(client.id);
+
+      this.server.emit('user_connected', { userId: payload.id });
+    } catch (err) {
+      client.disconnect(true);
+    }
   }
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
-    console.log(`--- Client disconnected: ${client.id}`);
-    this.connectedSockets = this.connectedSockets.filter((id) => id !== client.id);
+    const userId = client.userData?.userBaseId;
 
-    client.disconnect();
+    if (userId && this.activeConnections.has(userId)) {
+      const connections = this.activeConnections.get(userId);
+      connections.delete(client.id);
+
+      if (connections.size === 0) {
+        this.activeConnections.delete(userId);
+        this.server.emit('user_disconnected', { userId });
+      }
+    }
   }
 
   @SubscribeMessage('checkData')
-  async connect(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
-    // console.log(client.data.userBaseId)
-    const userBase = await this.userService.findUserById(client.userData.userBaseId);
-    // console.log(userBase)
-
+  async connect(@ConnectedSocket() client: Socket) {
     console.log('ID', client.userData.userBaseId);
 
-    const existingSocketWithUserId = this.connectedSockets.find((ws) => ws == client.id);
+    const userId = client.userData.userBaseId;
 
-    console.log(existingSocketWithUserId);
-    if (!existingSocketWithUserId) {
-      this.connectedSockets.push(client.id);
+    if (!userId) {
+      client.emit('error', { message: 'User not authenticated' });
+      return;
     }
 
     const chats = await this.dbService.chat.findMany({
       where: {
         members: {
           some: {
-            id: userBase.id,
+            id: userId,
           },
         },
       },
@@ -90,7 +138,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       },
     });
 
-    this.server.emit('checkData', chats);
+    client.emit('checkData', chats);
   }
 
   @SubscribeMessage('post:new')
@@ -98,39 +146,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     client.broadcast.emit('post:new', true);
   }
 
-  // @SubscribeMessage('loadMessages')
-  // async loadMessages(
-  //   @ConnectedSocket() client: Socket,
-  //   @MessageBody() data: { chatId: string },
-  // ) {
-  //   if (!data && !data?.chatId) {
-  //     // return handleWsError(client, "Invalid chat")
-
-  //     return;
-  //   }
-
-  //   const messages = await this.dbService.message.findMany({
-  //     where: {
-  //       chatId: data.chatId,
-  //     },
-  //     include:{
-  //       UserBase: true
-  //     }
-  //   });
-
-  //   this.server.emit('loadMessages', messages);
-  // }
-
   @SubscribeMessage('messages:post')
   async sendMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { message: string; chatId: string },
   ): Promise<void> {
     try {
-      console.log('Received data:', data);
-
+      console.log('SendMessage event triggered');
       const UserBase = await this.userService.findUserById(client.userData.userBaseId);
-      // console.log(UserBase)
 
       const newMessage = await this.dbService.message.create({
         data: {
@@ -149,20 +172,46 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       });
 
       await this.dbService.chat.update({
-        where: {
-          id: data.chatId,
-        },
+        where: { id: data.chatId },
         data: {
-          lastMessageAt: new Date(),
+          lastMessage: {
+            connect: { id: newMessage.id },
+          },
         },
       });
 
-      console.log('new:', newMessage);
+      const chat = await this.dbService.chat.findUnique({
+        where: {
+          id: data.chatId,
+        },
+        include: {
+          members: {
+            select: {
+              id: true,
+            },
+          },
+          lastMessage: true,
+        },
+      });
 
-      this.server.emit('messages:get', {
-        chatId: data.chatId,
-        message: newMessage,
-        senderName: UserBase.name,
+      if (!chat) {
+        throw new NotFoundException('Chat not found');
+      }
+
+      const memberIds = chat.members.map((member) => member.id);
+
+      memberIds.forEach((memberId) => {
+        const connections = this.activeConnections.get(memberId);
+        if (connections) {
+          connections.forEach((socketId) => {
+            console.log('socketId', socketId);
+            this.server.to(socketId).emit('messages:get', {
+              chat,
+              message: newMessage,
+              senderName: UserBase.name,
+            });
+          });
+        }
       });
     } catch (error) {
       console.log('Error [sendMessage]', error);
@@ -297,7 +346,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
   async onModuleInit() {
     setInterval(() => {
-      console.log('Active sockets:', this.connectedSockets);
+      console.log('Active sockets:', this.activeConnections);
       // console.log('Active sockets:', this.connectedSockets.length);
     }, 10000);
   }
