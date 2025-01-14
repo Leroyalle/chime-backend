@@ -9,8 +9,8 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get()
-  async getUserChats(@UserId() userId: string) {
-    return this.chatService.getUserChats(userId);
+  async getUserChats(@UserId() userId: string, @Query('query') query: string = '') {
+    return this.chatService.getUserChats(userId, query);
   }
 
   @Get('info/:id')

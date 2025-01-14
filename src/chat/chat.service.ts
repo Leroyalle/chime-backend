@@ -70,15 +70,39 @@ export class ChatService {
     }
   }
 
-  async getUserChats(userId: string) {
+  async getUserChats(userId: string, query: string) {
+    console.log(query);
     try {
       const data = await this.chatDb.findMany({
         where: {
-          members: {
-            some: {
-              id: userId,
+          AND: [
+            {
+              members: {
+                some: {
+                  id: userId,
+                },
+              },
             },
-          },
+            {
+              members: {
+                some: {
+                  AND: [
+                    {
+                      id: {
+                        not: userId,
+                      },
+                    },
+                    {
+                      name: {
+                        contains: query,
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
         },
         include: {
           members: true,
