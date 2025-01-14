@@ -1,18 +1,13 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   BadGatewayException,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import { LikeService } from './like.service';
-import { CreateLikeDto } from './dto/create-like.dto';
-import { UpdateLikeDto } from './dto/update-like.dto';
 import { UserId } from 'src/userid.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 

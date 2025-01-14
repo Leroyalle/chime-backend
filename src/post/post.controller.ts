@@ -43,6 +43,19 @@ export class PostController {
     return this.postService.getPostById(postId, userId);
   }
 
+  @Get('user/liked')
+  getAllUserLikes(
+    @UserId() userId: string,
+    @Query('page') page: number = 1,
+    @Query('perPage') perPage: number = 10,
+  ) {
+    return this.postService.getAllUserLikes({
+      userId,
+      page: +page,
+      perPage: +perPage,
+    });
+  }
+
   @Get('user/:id')
   async getPostsByUserId(
     @Param('id') userPostId: string,

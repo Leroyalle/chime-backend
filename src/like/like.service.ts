@@ -17,10 +17,8 @@ export class LikeService {
     const existingLike = await this.findLike(postId, userId);
     const existingPost = await this.postService.findById(postId);
 
-    if (existingLike)
-      return new BadGatewayException(`Already associated with ${postId}`);
-    if (!existingPost)
-      return new BadGatewayException(`Post with ID ${postId} not found`);
+    if (existingLike) return new BadGatewayException(`Already associated with ${postId}`);
+    if (!existingPost) return new BadGatewayException(`Post with ID ${postId} not found`);
 
     console.log(postId, userId);
     const like = await this.likeDb.create({
@@ -31,8 +29,7 @@ export class LikeService {
 
   async unlike(postId: string, userId: string) {
     const existingLike = await this.findLike(postId, userId);
-    if (!existingLike)
-      return new BadGatewayException(`Can not dislike ${postId}`);
+    if (!existingLike) return new BadGatewayException(`Can not dislike ${postId}`);
 
     return await this.likeDb.deleteMany({
       where: { postId, userId },

@@ -4,6 +4,7 @@ import {
   HttpStatus,
   NotFoundException,
   BadRequestException,
+  BadGatewayException,
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 
@@ -125,6 +126,63 @@ export class PostService {
     } catch (error) {
       console.log('Error [getPostsByUserId]', error);
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getAllUserLikes({
+    userId,
+    page = 1,
+    perPage = 10,
+  }: {
+    userId: string;
+    page: number;
+    perPage: number;
+  }) {
+    try {
+      const likedPosts = await this.postDb.findMany({
+        where: {
+          likes: {
+            some: {
+              userId,
+            },
+          },
+        },
+        include: {
+          author: true,
+          likes: true,
+          comments: true,
+          tags: true,
+        },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      });
+
+      const postWithLikeInfo = likedPosts.map((post) => ({
+        ...post,
+        isLiked: post.likes.some((like) => like.userId === userId),
+        likesCount: post.likes.length,
+        commentsCount: post.comments.length,
+      }));
+
+      const totalItems = await this.postDb.count({
+        where: {
+          likes: {
+            some: {
+              userId,
+            },
+          },
+        },
+      });
+      const totalPages = Math.ceil(totalItems / perPage);
+
+      return {
+        data: postWithLikeInfo,
+        totalItems,
+        totalPages,
+      };
+    } catch (error) {
+      console.log('[GET_USER_LIKES]', error);
+      throw new BadGatewayException(`Failed to get user likes`);
     }
   }
 
