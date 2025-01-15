@@ -346,7 +346,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
   async onModuleInit() {
     setInterval(() => {
-      console.log('Active sockets:', this.activeConnections);
+      // console.log('Active sockets:', this.activeConnections);
       // console.log('Active sockets:', this.connectedSockets.length);
     }, 10000);
   }

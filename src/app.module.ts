@@ -17,6 +17,8 @@ import { CommentModule } from './comment/comment.module';
 import { FollowModule } from './follow/follow.module';
 import { ChatModule } from './chat/chat.module';
 import { BookmarkModule } from './bookmark/bookmark.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -43,6 +45,13 @@ import { BookmarkModule } from './bookmark/bookmark.module';
     ChatModule,
 
     BookmarkModule,
+
+
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '../uploads'),
+      serveRoot: '/uploads',
+    }),
+
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard],
@@ -67,7 +76,7 @@ export class AppModule {
 
     // полная очистка базы данных
     // await this.cleanDatabase()
-    
+
   }
 
   async cleanDatabase() {
@@ -79,8 +88,8 @@ export class AppModule {
 
     await this.databaseService.chat.deleteMany()
     // await this.databaseService.message.deleteMany()
-    
-    
+
+
   }
 
 

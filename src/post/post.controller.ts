@@ -9,24 +9,39 @@ import {
   UseGuards,
   BadRequestException,
   UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UserId } from 'src/userid.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 
+
 @Controller('posts')
 @UseGuards(JwtAuthGuard)
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(private readonly postService: PostService) { }
 
   @Post()
   @UseInterceptors(FileInterceptor('postImage'))
-  async createPost(@Body() body: { content: string; tags?: string }, @UserId() userId: string) {
+  async createPost(
+    @UploadedFile() file: any,
+    @Body() body: { content: string; tags?: string },
+    @UserId() userId: string,
+  ) {
     if (!body.content) {
       throw new BadRequestException('Text must be provided');
     }
-    return this.postService.createPost(body.content, userId, body.tags && JSON.parse(body.tags));
+
+    console.log(body)
+    console.log(file)
+
+    const imagePath = `${file.originalname}`
+
+
+    console.log(imagePath)
+
+    return this.postService.createPost(body.content, userId, imagePath, body.tags && JSON.parse(body.tags));
   }
 
   @Get()

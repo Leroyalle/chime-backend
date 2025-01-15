@@ -16,11 +16,12 @@ export class PostService {
     this.postDb = databaseService.post;
   }
 
-  async createPost(content: string, userId: string, tags?: { value: string; label: string }[]) {
+  async createPost(content: string, userId: string, imageUrl: string, tags?: { value: string; label: string }[]) {
     return await this.postDb.create({
       data: {
         content,
         authorId: userId,
+        imageUrl: imageUrl,
         tags: {
           create: tags?.map((tag) => ({
             value: tag.value,
