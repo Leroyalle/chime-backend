@@ -36,9 +36,10 @@ model UserBase {
   TelegramUser TelegramUser?
   GoogleUser   GoogleUser?
 
-  posts    Post[]
-  likes    Like[]
-  comments Comment[]
+  posts     Post[]
+  likes     Like[]
+  comments  Comment[]
+  bookmarks Bookmark[]
 
   followers Follows[] @relation("following")
   following Follows[] @relation("follower")
@@ -96,6 +97,8 @@ model Post {
   comments Comment[]
 
   tags Tag[]
+
+  bookmarks Bookmark[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -176,6 +179,19 @@ model Message {
 
   UserBase   UserBase @relation(fields: [userBaseId], references: [id], onDelete: Cascade)
   userBaseId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Bookmark {
+  id String @id @default(uuid())
+
+  userId String
+  user   UserBase @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

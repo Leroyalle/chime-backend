@@ -41,6 +41,7 @@ export class PostService {
         likes: true,
         comments: true,
         tags: true,
+        bookmarks: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -49,9 +50,10 @@ export class PostService {
       take: perPage,
     });
 
-    const postWithLikeInfo = posts.map((post) => ({
+    const enhancedPost = posts.map((post) => ({
       ...post,
       isLiked: post.likes.some((like) => like.userId === userId),
+      isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
       likesCount: post.likes.length,
       commentsCount: post.comments.length,
     }));
@@ -60,7 +62,7 @@ export class PostService {
     const totalPages = Math.ceil(totalPosts / perPage);
 
     return {
-      data: postWithLikeInfo,
+      data: enhancedPost,
       currentPage: page,
       totalPages,
     };
@@ -84,12 +86,12 @@ export class PostService {
 
     if (!post) throw new NotFoundException('Post not found');
 
-    const postWithLikeInfo = {
+    const enhancedPost = {
       ...post,
       isLiked: post.likes.some((like) => like.userId === userId),
     };
 
-    return postWithLikeInfo;
+    return enhancedPost;
   }
 
   async getAllPostsByUserId(userId: string, userPostId: string, page: number, perPage: number) {
@@ -101,6 +103,7 @@ export class PostService {
           likes: true,
           comments: true,
           tags: true,
+          bookmarks: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -109,9 +112,10 @@ export class PostService {
         take: perPage,
       });
 
-      const postWithLikeInfo = posts.map((post) => ({
+      const enhancedPost = posts.map((post) => ({
         ...post,
         isLiked: post.likes.some((like) => like.userId === userId),
+        isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
         likesCount: post.likes.length,
         commentsCount: post.comments.length,
       }));
@@ -119,7 +123,7 @@ export class PostService {
       const totalPosts = await this.postDb.count();
       const totalPages = Math.ceil(totalPosts / perPage);
       return {
-        data: postWithLikeInfo,
+        data: enhancedPost,
         currentPage: page,
         totalPages,
       };
@@ -152,13 +156,15 @@ export class PostService {
           likes: true,
           comments: true,
           tags: true,
+          bookmarks: true,
         },
         skip: (page - 1) * perPage,
         take: perPage,
       });
 
-      const postWithLikeInfo = likedPosts.map((post) => ({
+      const enhancedPost = likedPosts.map((post) => ({
         ...post,
+        isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
         isLiked: post.likes.some((like) => like.userId === userId),
         likesCount: post.likes.length,
         commentsCount: post.comments.length,
@@ -176,7 +182,7 @@ export class PostService {
       const totalPages = Math.ceil(totalItems / perPage);
 
       return {
-        data: postWithLikeInfo,
+        data: enhancedPost,
         totalItems,
         totalPages,
       };

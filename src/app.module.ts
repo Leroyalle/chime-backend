@@ -16,6 +16,7 @@ import { PostModule } from './post/post.module';
 import { CommentModule } from './comment/comment.module';
 import { FollowModule } from './follow/follow.module';
 import { ChatModule } from './chat/chat.module';
+import { BookmarkModule } from './bookmark/bookmark.module';
 
 @Module({
   imports: [
@@ -40,6 +41,8 @@ import { ChatModule } from './chat/chat.module';
     FollowModule,
 
     ChatModule,
+
+    BookmarkModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard],

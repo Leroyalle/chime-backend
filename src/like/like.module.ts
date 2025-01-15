@@ -5,12 +5,8 @@ import { DatabaseModule } from 'src/database/database.module';
 import { PostModule } from 'src/post/post.module';
 
 @Module({
-  imports: [
-    DatabaseModule,
-    PostModule
-
-  ],
+  imports: [DatabaseModule, PostModule],
   controllers: [LikeController],
   providers: [LikeService],
 })
-export class LikeModule { }
+export class LikeModule {}
