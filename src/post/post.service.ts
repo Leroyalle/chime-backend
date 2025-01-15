@@ -16,12 +16,21 @@ export class PostService {
     this.postDb = databaseService.post;
   }
 
-  async createPost(content: string, userId: string, imageUrl: string, tags?: { value: string; label: string }[]) {
+  async createPost(
+    content: string,
+    userId: string,
+    imagePaths?: string[],
+    tags?: { value: string; label: string }[],
+  ) {
     return await this.postDb.create({
       data: {
         content,
         authorId: userId,
-        imageUrl: imageUrl,
+        images: {
+          createMany: {
+            data: imagePaths?.map((path) => ({ url: path })),
+          },
+        },
         tags: {
           create: tags?.map((tag) => ({
             value: tag.value,
@@ -43,6 +52,7 @@ export class PostService {
         comments: true,
         tags: true,
         bookmarks: true,
+        images: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -76,6 +86,7 @@ export class PostService {
         author: true,
         likes: true,
         tags: true,
+        images: true,
         comments: {
           include: {
             user: true,
@@ -105,6 +116,7 @@ export class PostService {
           comments: true,
           tags: true,
           bookmarks: true,
+          images: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -158,6 +170,7 @@ export class PostService {
           comments: true,
           tags: true,
           bookmarks: true,
+          images: true,
         },
         skip: (page - 1) * perPage,
         take: perPage,
@@ -206,12 +219,11 @@ export class PostService {
       throw new BadRequestException('User is not the author of the post');
     }
 
-    // FIXME: fix later
-
     const transaction = await this.databaseService.$transaction([
       this.databaseService.comment.deleteMany({ where: { postId } }),
       this.databaseService.like.deleteMany({ where: { postId } }),
       this.databaseService.post.delete({ where: { id: postId } }),
+      this.databaseService.image.deleteMany({ where: { postId } }),
     ]);
 
     return transaction[2];

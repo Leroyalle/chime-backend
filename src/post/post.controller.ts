@@ -9,39 +9,44 @@ import {
   UseGuards,
   BadRequestException,
   UseInterceptors,
-  UploadedFile,
+  UploadedFiles,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UserId } from 'src/userid.decorator';
-import { FileInterceptor } from '@nestjs/platform-express';
-
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('posts')
 @UseGuards(JwtAuthGuard)
 export class PostController {
-  constructor(private readonly postService: PostService) { }
+  constructor(private readonly postService: PostService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('postImage'))
+  @UseInterceptors(FilesInterceptor('postImages'))
   async createPost(
-    @UploadedFile() file: any,
+    @UploadedFiles() files: Array<Express.Multer.File>,
     @Body() body: { content: string; tags?: string },
     @UserId() userId: string,
   ) {
+    console.log('BODY', body, files);
     if (!body.content) {
       throw new BadRequestException('Text must be provided');
     }
 
-    console.log(body)
-    console.log(file)
+    if (files && files.length > 4) {
+      throw new BadRequestException('Too many images');
+    }
 
-    const imagePath = `${file.originalname}`
+    const imagePaths = files.map((file) => `${file.originalname}`);
 
+    console.log(imagePaths);
 
-    console.log(imagePath)
-
-    return this.postService.createPost(body.content, userId, imagePath, body.tags && JSON.parse(body.tags));
+    return this.postService.createPost(
+      body.content,
+      userId,
+      imagePaths,
+      body.tags && JSON.parse(body.tags),
+    );
   }
 
   @Get()

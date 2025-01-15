@@ -9,13 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
-import {
-  InternalServerErrorException,
-  NotFoundException,
-  OnModuleInit,
-  UseGuards,
-} from '@nestjs/common';
-import { WsJwtAuthGuard } from 'src/auth/strategies/ws.strategy';
+import { InternalServerErrorException, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { DatabaseService } from 'src/database/database.service';
 import { ConfigService } from '@nestjs/config';

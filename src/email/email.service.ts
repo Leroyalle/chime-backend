@@ -1,7 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { DatabaseService } from 'src/database/database.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class EmailService {
@@ -48,19 +47,19 @@ export class EmailService {
       },
     });
   }
+  ч;
 
   async verifyCode(userId: string, code: string): Promise<boolean> {
     console.log('verifyCode', userId, code);
-    const verificationCode =
-      await this.databaseService.verificationCode.findFirst({
-        where: {
-          userId,
-          code,
-          expiresAt: {
-            gt: new Date(),
-          },
+    const verificationCode = await this.databaseService.verificationCode.findFirst({
+      where: {
+        userId,
+        code,
+        expiresAt: {
+          gt: new Date(),
         },
-      });
+      },
+    });
 
     if (verificationCode) {
       await this.databaseService.verificationCode.delete({
