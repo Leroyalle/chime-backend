@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Delete, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Delete, Body, UseGuards, Query } from '@nestjs/common';
 import { BookmarkService } from './bookmark.service';
 import { UserId } from 'src/userid.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -14,8 +14,12 @@ export class BookmarkController {
   }
 
   @Get()
-  findAll() {
-    return this.bookmarkService.findAll();
+  findAll(
+    @UserId() userId: string,
+    @Query('page') page: number = 1,
+    @Query('perPage') perPage: number = 10,
+  ) {
+    return this.bookmarkService.findAll(userId, +page, +perPage);
   }
 
   @Delete(':id')

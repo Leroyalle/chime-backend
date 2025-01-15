@@ -24,8 +24,38 @@ export class BookmarkService {
     }
   }
 
-  findAll() {
-    return `This action returns all bookmark`;
+  async findAll(userId: string, page: number, perPage: number) {
+    try {
+      const findPosts = await this.databaseService.post.findMany({
+        where: { bookmarks: { some: { userId } } },
+        skip: (page - 1) * perPage,
+        take: perPage,
+        include: {
+          author: true,
+          likes: true,
+          comments: true,
+          tags: true,
+          bookmarks: true,
+        },
+      });
+
+      const enhancedPost = findPosts.map((post) => ({
+        ...post,
+        isLiked: post.likes.some((like) => like.userId === userId),
+        isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
+        likesCount: post.likes.length,
+        commentsCount: post.comments.length,
+      }));
+
+      const totalItems = await this.databaseService.post.count({
+        where: { bookmarks: { some: { userId } } },
+      });
+      const totalPages = Math.ceil(totalItems / perPage);
+
+      return { data: enhancedPost, totalItems, totalPages };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   async findOne(userId: string, postId: string) {
