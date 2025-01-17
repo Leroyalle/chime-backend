@@ -30,12 +30,14 @@ export class BookmarkService {
         where: { bookmarks: { some: { userId } } },
         skip: (page - 1) * perPage,
         take: perPage,
+        orderBy: { createdAt: 'desc' },
         include: {
           author: true,
           likes: true,
           comments: true,
           tags: true,
           bookmarks: true,
+          images: true,
         },
       });
 

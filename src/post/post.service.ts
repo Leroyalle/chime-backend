@@ -44,7 +44,16 @@ export class PostService {
     });
   }
 
-  async getAllPosts(userId: string, page: number, perPage: number) {
+  async getAllPosts(userId: string, page: number, perPage: number, sortBy: 'new' | 'popular') {
+    const orderBy =
+      sortBy === 'new'
+        ? { createdAt: 'desc' as const }
+        : {
+            likes: {
+              _count: 'desc' as const,
+            },
+          };
+
     const posts = await this.postDb.findMany({
       include: {
         author: true,
@@ -53,10 +62,11 @@ export class PostService {
         tags: true,
         bookmarks: true,
         images: true,
+        _count: {
+          select: { likes: true },
+        },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy,
       skip: (page - 1) * perPage,
       take: perPage,
     });
@@ -74,7 +84,7 @@ export class PostService {
 
     return {
       data: enhancedPost,
-      currentPage: page,
+      totalPosts,
       totalPages,
     };
   }

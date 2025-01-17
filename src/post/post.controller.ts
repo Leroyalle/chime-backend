@@ -50,12 +50,21 @@ export class PostController {
   }
 
   @Get()
-  async getAllPosts(
+  async getAllNewPosts(
     @UserId() userId: string,
     @Query('page') page: number = 1,
     @Query('perPage') perPage: number = 10,
   ) {
-    return this.postService.getAllPosts(userId, +page, +perPage);
+    return this.postService.getAllPosts(userId, +page, +perPage, 'new');
+  }
+
+  @Get('popular')
+  async getAllPopularPosts(
+    @UserId() userId: string,
+    @Query('page') page: number = 1,
+    @Query('perPage') perPage: number = 10,
+  ) {
+    return this.postService.getAllPosts(userId, +page, +perPage, 'popular');
   }
 
   @Get(':id')
