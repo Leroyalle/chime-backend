@@ -152,7 +152,6 @@ export class ChatService {
           .join(', '),
       };
 
-      console.log('CHAT:', chatsWithName);
       return chatsWithName;
     } catch (error) {
       throw new InternalServerErrorException(error.message);
@@ -176,6 +175,18 @@ export class ChatService {
             select: {
               id: true,
               name: true,
+              avatar: true,
+            },
+          },
+          post: {
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatar: true,
+                },
+              },
             },
           },
         },

@@ -22,11 +22,12 @@ model UserBase {
   banned Boolean @default(false)
   role   String  @default("user")
 
+  name     String  @default("User")
+  avatar   String?
   about    String?
   age      Int?
   location String?
   status   String?
-  name     String  @default("User")
   alias    String  @unique
 
   createdAt DateTime @default(now())
@@ -100,6 +101,8 @@ model Post {
 
   bookmarks Bookmark[]
   images    Image[]
+
+  messages Message[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -182,11 +185,16 @@ model Chat {
 }
 
 model Message {
-  id   String @id @default(uuid())
-  body String
+  id String @id @default(uuid())
+
+  content String?
+  type    MessageEnum
 
   chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId String
+
+  post   Post?   @relation(fields: [postId], references: [id], onDelete: SetNull)
+  postId String?
 
   isLastMessageIn Chat? @relation("lastMessage")
 
@@ -210,8 +218,7 @@ model Bookmark {
   updatedAt DateTime @updatedAt
 }
 
-// id: string,
-// socketId: string,
-// body: string,
-// time: string,
-// userId: string
+enum MessageEnum {
+  TEXT
+  POST
+}

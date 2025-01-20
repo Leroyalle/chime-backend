@@ -9,11 +9,19 @@ import {
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
-import { InternalServerErrorException, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  NotFoundException,
+  OnModuleInit,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { DatabaseService } from 'src/database/database.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { Message } from './dto/message.dto';
+import { MessageTypeEnum } from './dto/message-type.enum';
 
 declare module 'socket.io' {
   interface Socket {
@@ -21,14 +29,6 @@ declare module 'socket.io' {
       userBaseId?: string;
     };
   }
-}
-
-export interface Message {
-  id: string;
-  socketId: string;
-  body: string;
-  time: string;
-  userId: string;
 }
 
 @WebSocketGateway({
@@ -140,73 +140,184 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     client.broadcast.emit('post:new', true);
   }
 
+  @UsePipes(new ValidationPipe())
   @SubscribeMessage('messages:post')
   async sendMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { message: string; chatId: string },
+    @MessageBody() data: Message,
   ): Promise<void> {
     try {
-      console.log('SendMessage event triggered');
+      console.log('MESSAGEDATA:', data);
       const UserBase = await this.userService.findUserById(client.userData.userBaseId);
+      let message;
 
-      const newMessage = await this.dbService.message.create({
-        data: {
-          chatId: data.chatId,
-          userBaseId: UserBase.id,
-          body: data.message,
-        },
-        include: {
-          UserBase: {
-            select: {
-              id: true,
-              name: true,
+      if (data.body.type === MessageTypeEnum.TEXT) {
+        message = await this.dbService.message.create({
+          data: {
+            chatId: data.body.chatId,
+            userBaseId: UserBase.id,
+            content: data.body.content,
+            type: data.body.type,
+          },
+          include: {
+            UserBase: {
+              select: {
+                id: true,
+                name: true,
+                // avatar: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      await this.dbService.chat.update({
-        where: { id: data.chatId },
-        data: {
-          lastMessage: {
-            connect: { id: newMessage.id },
-          },
-        },
-      });
-
-      const chat = await this.dbService.chat.findUnique({
-        where: {
-          id: data.chatId,
-        },
-        include: {
-          members: {
-            select: {
-              id: true,
+        await this.dbService.chat.update({
+          where: { id: data.body.chatId },
+          data: {
+            lastMessage: {
+              connect: { id: message.id },
             },
           },
-          lastMessage: true,
-        },
-      });
+        });
 
-      if (!chat) {
-        throw new NotFoundException('Chat not found');
+        const chat = await this.dbService.chat.findUnique({
+          where: {
+            id: data.body.chatId,
+          },
+          include: {
+            members: {
+              select: {
+                id: true,
+              },
+            },
+            lastMessage: true,
+          },
+        });
+
+        if (!chat) {
+          throw new NotFoundException('Chat not found');
+        }
+
+        const memberIds = chat.members.map((member) => member.id);
+
+        memberIds.forEach((memberId) => {
+          const connections = this.activeConnections.get(memberId);
+          if (connections) {
+            connections.forEach((socketId) => {
+              console.log('SOCKETRESPONSE', { chat, message, senderName: UserBase.name });
+              this.server.to(socketId).emit('messages:get', {
+                chat,
+                message,
+                senderName: UserBase.name,
+              });
+            });
+          }
+        });
+        return;
       }
 
-      const memberIds = chat.members.map((member) => member.id);
+      if (data.body.type === MessageTypeEnum.POST) {
+        const findPost = await this.dbService.post.findUnique({
+          where: {
+            id: data.body.postId,
+          },
+        });
 
-      memberIds.forEach((memberId) => {
-        const connections = this.activeConnections.get(memberId);
-        if (connections) {
-          connections.forEach((socketId) => {
-            console.log('socketId', socketId);
-            this.server.to(socketId).emit('messages:get', {
-              chat,
-              message: newMessage,
-              senderName: UserBase.name,
-            });
-          });
+        if (!findPost) {
+          throw new NotFoundException('Post not found');
         }
-      });
+        console.log(data.body.postId);
+
+        const messageCreationResult = await this.dbService.message.createMany({
+          data: data.body.chatIds.map((chatId) => ({
+            chatId,
+            userBaseId: UserBase.id,
+            content: data.body.content,
+            type: data.body.type,
+            postId: findPost.id,
+          })),
+        });
+
+        const findMessages = await this.dbService.message.findMany({
+          where: {
+            chatId: { in: data.body.chatIds },
+            userBaseId: UserBase.id,
+            content: data.body.content,
+            type: data.body.type,
+            postId: findPost.id,
+          },
+          include: {
+            post: {
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    name: true,
+                    avatar: true,
+                  },
+                },
+              },
+            },
+            UserBase: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: messageCreationResult.count,
+        });
+
+        await this.dbService.$transaction(
+          data.body.chatIds.map((chatId, index) =>
+            this.dbService.chat.update({
+              where: { id: chatId },
+              data: {
+                lastMessage: {
+                  connect: { id: findMessages[index].id },
+                },
+              },
+            }),
+          ),
+        );
+
+        const chats = await this.dbService.chat.findMany({
+          where: {
+            id: {
+              in: data.body.chatIds,
+            },
+          },
+          include: {
+            members: {
+              select: {
+                id: true,
+              },
+            },
+            lastMessage: true,
+          },
+        });
+
+        chats.forEach((chat) =>
+          chat.members.forEach((member) => {
+            const connections = this.activeConnections.get(member.id);
+            if (connections) {
+              connections.forEach((socketId) => {
+                console.log('SOCKET EMIT:', {
+                  chat,
+                  message: findMessages.find((msg) => msg.chatId === chat.id),
+                  senderName: UserBase.name,
+                });
+                this.server.to(socketId).emit('messages:get', {
+                  chat,
+                  message: findMessages.find((msg) => msg.chatId === chat.id),
+                  senderName: UserBase.name,
+                });
+              });
+            }
+          }),
+        );
+      }
     } catch (error) {
       console.log('Error [sendMessage]', error);
       throw new InternalServerErrorException(error.message);
@@ -235,7 +346,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
           id: data.messageId,
         },
         data: {
-          body: data.messageBody,
+          content: data.messageBody,
         },
         include: {
           UserBase: {

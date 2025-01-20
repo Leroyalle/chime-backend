@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { ScheduleModule } from "@nestjs/schedule";
+import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -46,37 +46,32 @@ import { join } from 'path';
 
     BookmarkModule,
 
-
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '../uploads'),
       serveRoot: '/uploads',
     }),
-
   ],
   controllers: [AppController],
   providers: [AppService, JwtAuthGuard],
-  exports: []
+  exports: [],
 })
 export class AppModule {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly usersService: UserService,
     private readonly emailUsersService: EmailUsersService,
-  ) { }
-
-
+  ) {}
 
   async onModuleInit() {
     // создание фейковых пользователей
     // await this.usersService.generateUsers(100)
 
     // // создание администраторов и получение информации о создании
-    const responseInfo = await this.emailUsersService.createAdminsOnInit()
+    const responseInfo = await this.emailUsersService.createAdminsOnInit();
     // console.log(responseInfo)
 
     // полная очистка базы данных
     // await this.cleanDatabase()
-
   }
 
   async cleanDatabase() {
@@ -84,14 +79,9 @@ export class AppModule {
     // await this.databaseService.emailUser.deleteMany()
     // await this.databaseService.telegramUser.deleteMany()
     // await this.databaseService.googleUser.deleteMany()
-    // await this.databaseService.userBase.deleteMany()   
+    // await this.databaseService.userBase.deleteMany()
 
-    await this.databaseService.chat.deleteMany()
+    await this.databaseService.chat.deleteMany();
     // await this.databaseService.message.deleteMany()
-
-
   }
-
-
-
 }
