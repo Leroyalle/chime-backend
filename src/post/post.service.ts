@@ -97,6 +97,7 @@ export class PostService {
         likes: true,
         tags: true,
         images: true,
+        bookmarks: true,
         comments: {
           include: {
             user: true,
@@ -111,6 +112,9 @@ export class PostService {
     const enhancedPost = {
       ...post,
       isLiked: post.likes.some((like) => like.userId === userId),
+      isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
+      likesCount: post.likes.length,
+      commentsCount: post.comments.length,
     };
 
     return enhancedPost;

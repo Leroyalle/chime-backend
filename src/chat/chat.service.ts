@@ -106,7 +106,11 @@ export class ChatService {
         },
         include: {
           members: true,
-          lastMessage: true,
+          lastMessage: {
+            include: {
+              UserBase: true,
+            },
+          },
         },
         orderBy: {
           lastMessage: {
@@ -187,6 +191,7 @@ export class ChatService {
                   avatar: true,
                 },
               },
+              images: true,
             },
           },
         },

@@ -170,18 +170,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
           },
         });
 
-        await this.dbService.chat.update({
-          where: { id: data.body.chatId },
+        const findChat = await this.dbService.chat.findUnique({
+          where: {
+            id: data.body.chatId,
+          },
+        });
+
+        if (!findChat) {
+          throw new NotFoundException('Chat not found');
+        }
+
+        const chat = await this.dbService.chat.update({
+          where: { id: findChat.id },
           data: {
             lastMessage: {
               connect: { id: message.id },
             },
-          },
-        });
-
-        const chat = await this.dbService.chat.findUnique({
-          where: {
-            id: data.body.chatId,
           },
           include: {
             members: {
@@ -193,21 +197,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
           },
         });
 
-        if (!chat) {
-          throw new NotFoundException('Chat not found');
-        }
-
         const memberIds = chat.members.map((member) => member.id);
 
         memberIds.forEach((memberId) => {
           const connections = this.activeConnections.get(memberId);
           if (connections) {
             connections.forEach((socketId) => {
-              console.log('SOCKETRESPONSE', { chat, message, senderName: UserBase.name });
               this.server.to(socketId).emit('messages:get', {
                 chat,
                 message,
-                senderName: UserBase.name,
               });
             });
           }
@@ -225,7 +223,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         if (!findPost) {
           throw new NotFoundException('Post not found');
         }
-        console.log(data.body.postId);
 
         const messageCreationResult = await this.dbService.message.createMany({
           data: data.body.chatIds.map((chatId) => ({
@@ -255,6 +252,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
                     avatar: true,
                   },
                 },
+                images: true,
               },
             },
             UserBase: {
@@ -303,15 +301,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             const connections = this.activeConnections.get(member.id);
             if (connections) {
               connections.forEach((socketId) => {
-                console.log('SOCKET EMIT:', {
-                  chat,
-                  message: findMessages.find((msg) => msg.chatId === chat.id),
-                  senderName: UserBase.name,
-                });
                 this.server.to(socketId).emit('messages:get', {
                   chat,
                   message: findMessages.find((msg) => msg.chatId === chat.id),
-                  senderName: UserBase.name,
                 });
               });
             }
@@ -349,17 +341,76 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
           content: data.messageBody,
         },
         include: {
+          post: {
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatar: true,
+                },
+              },
+              images: true,
+            },
+          },
           UserBase: {
             select: {
               id: true,
               name: true,
+              avatar: true,
             },
           },
         },
       });
 
+      const findChat = await this.dbService.chat.findUnique({
+        where: {
+          id: findMessage.chatId,
+        },
+      });
+
+      if (!findChat) {
+        throw new NotFoundException('Chat not found');
+      }
+
+      const chat = await this.dbService.chat.update({
+        where: { id: findMessage.chatId },
+        data: {
+          lastMessage: {
+            connect:
+              findChat.lastMessageId === data.messageId
+                ? { id: updatedMessage.id }
+                : { id: findChat.lastMessageId },
+          },
+        },
+
+        include: {
+          members: {
+            select: {
+              id: true,
+            },
+          },
+          lastMessage: {
+            include: {
+              UserBase: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatar: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      console.log({
+        chat,
+        message: updatedMessage,
+      });
+
       this.server.emit('messages:patch', {
-        chatId: updatedMessage.chatId,
+        chat,
         message: updatedMessage,
       });
     } catch (error) {
@@ -375,12 +426,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     try {
       console.log(data);
 
-      //FIXME: сделать проверку является ли сообщение пользователя этого чата
-
       const existingMessage = await this.dbService.message.findUnique({
-        where: {
-          id: data.messageId,
-        },
+        where: { id: data.messageId },
       });
 
       if (!existingMessage) {
@@ -389,65 +436,55 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       }
 
       const deletedMessage = await this.dbService.message.delete({
-        where: {
-          id: data.messageId,
+        where: { id: data.messageId },
+      });
+
+      const newLastMessage = await this.dbService.message.findFirst({
+        where: { chatId: deletedMessage.chatId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const updatedChat = await this.dbService.chat.update({
+        where: { id: deletedMessage.chatId },
+        data: {
+          lastMessage: newLastMessage
+            ? { connect: { id: newLastMessage.id } }
+            : { disconnect: true },
+        },
+        include: {
+          members: {
+            select: {
+              id: true,
+            },
+          },
+          lastMessage: {
+            include: {
+              UserBase: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatar: true,
+                },
+              },
+            },
+          },
         },
       });
 
-      // _______Client Emit
+      console.log({
+        chat: updatedChat,
+        message: deletedMessage,
+      });
 
       this.server.emit('messages:delete', {
-        chatId: deletedMessage.chatId,
-        messageId: deletedMessage.id,
+        chat: updatedChat,
+        message: deletedMessage,
       });
     } catch (error) {
       console.log('Error [deleteMessage]', error);
       throw new InternalServerErrorException(error.message);
     }
   }
-
-  // @SubscribeMessage('messages:patch')
-  // async patchMessage(
-  //   @ConnectedSocket() client: Socket,
-  //   @MessageBody() data: { messageId: string; patchedMessageBody: string },
-  // ) {
-  //   try {
-  //     console.log(data);
-  //     //FIXME сделать проверку является ли сообщение пользователя этого чата
-
-  //     const existingMessage = await this.dbService.message.findUnique({
-  //       where: {
-  //         id: data.messageId,
-  //       },
-  //     });
-
-  //     if (!existingMessage) {
-  //       console.log('Message not found');
-  //       return;
-  //     }
-
-  //     const patchedMessage = await this.dbService.message.update({
-  //       where: {
-  //         id: data.messageId,
-  //       },
-  //       data: {
-  //         body: data.patchedMessageBody,
-  //       },
-  //     });
-
-  //     // _______Client Emit
-
-  //     // this.server.emit('messages:patch', {
-  //     //   // chatId: data.chatId,
-  //     //   message: patchedMessage,
-  //     // });
-  //   } catch (error) {
-  //     console.log('Error [patchMessage]', error);
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
-
-  // _________________________
 
   async onModuleInit() {
     setInterval(() => {
