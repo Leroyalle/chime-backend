@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: 'https://ghl3zp-3000.csb.app',
   });
   const PORT = 3001;
 
@@ -15,7 +15,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
-  
+
   // app.use('/public', express.static(join(__dirname, '..', 'public')));
   // app.use(express.static(join(__dirname, '../../client/dist')));
 
