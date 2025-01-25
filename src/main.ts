@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: 'https://ghl3zp-3000.csb.app',
+    origin: 'http://localhost:3000',
   });
   const PORT = 3001;
 

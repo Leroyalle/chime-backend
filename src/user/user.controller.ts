@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserId } from 'src/userid.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -16,10 +25,23 @@ export class UserController {
     return { user: findUser, isOwner: true };
   }
 
+  @Get('all')
+  async allUsers() {
+    console.log('all');
+    const findUsers = await this.usersService.findAll();
+    return findUsers;
+  }
+
   @Patch('me')
   @UseInterceptors(FileInterceptor('avatar'))
-  async updateUser(@UserId() userId: string, @Body() updateUserDto: UpdateUserDto) {
-    return await this.usersService.update(userId, updateUserDto);
+  async updateUser(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @UserId() userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    const avatarUrl = file ? `${file.originalname}` : undefined;
+    console.log('avatarUrl', avatarUrl);
+    return await this.usersService.update(userId, updateUserDto, avatarUrl);
   }
 
   @Get(':id')

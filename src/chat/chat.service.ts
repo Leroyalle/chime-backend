@@ -73,7 +73,7 @@ export class ChatService {
   async getUserChats(userId: string, query: string) {
     console.log(query);
     try {
-      const data = await this.chatDb.findMany({
+      const chats = await this.chatDb.findMany({
         where: {
           AND: [
             {
@@ -119,7 +119,7 @@ export class ChatService {
         },
       });
 
-      const chatsWithName = data.map((chat) => ({
+      const chatsWithName = chats.map((chat) => ({
         ...chat,
         name: chat.members
           .filter((member) => member.id !== userId)

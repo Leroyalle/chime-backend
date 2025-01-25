@@ -1,8 +1,4 @@
-import {
-  BadGatewayException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { BadGatewayException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
@@ -16,12 +12,10 @@ export class FollowService {
   }
 
   async follow(followingId: string, userId: string) {
-    if (followingId == userId)
-      throw new BadGatewayException('You cannot follow yourself');
+    if (followingId == userId) throw new BadGatewayException('You cannot follow yourself');
 
     const existingFollow = await this.findFollow(userId, followingId);
-    if (existingFollow)
-      throw new BadGatewayException('You already have a follow on this user');
+    if (existingFollow) throw new BadGatewayException('You already have a follow on this user');
 
     await this.followDb.create({
       data: {
@@ -38,8 +32,7 @@ export class FollowService {
       throw new BadGatewayException("You don't have a follow on yourself");
 
     const existingFollow = await this.findFollow(userId, unFollowingId);
-    if (!existingFollow)
-      throw new BadGatewayException("You don't have a follow on this user");
+    if (!existingFollow) throw new BadGatewayException("You don't have a follow on this user");
 
     await this.followDb.delete({
       where: {

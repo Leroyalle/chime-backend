@@ -191,6 +191,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             members: {
               select: {
                 id: true,
+                name: true,
               },
             },
             lastMessage: true,
@@ -199,12 +200,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         const memberIds = chat.members.map((member) => member.id);
 
+        const chatWithName = {
+          ...chat,
+          name: chat.members
+            .filter((member) => member.id !== UserBase.id)
+            .map((member) => member.name)
+            .join(', '),
+        };
+
         memberIds.forEach((memberId) => {
           const connections = this.activeConnections.get(memberId);
           if (connections) {
             connections.forEach((socketId) => {
               this.server.to(socketId).emit('messages:get', {
-                chat,
+                chat: chatWithName,
                 message,
               });
             });
@@ -290,13 +299,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
             members: {
               select: {
                 id: true,
+                name: true,
               },
             },
             lastMessage: true,
           },
         });
 
-        chats.forEach((chat) =>
+        const chatsWithName = chats.map((chat) => ({
+          ...chat,
+          name: chat.members
+            .filter((member) => member.id !== UserBase.id)
+            .map((member) => member.name)
+            .join(', '),
+        }));
+
+        chatsWithName.forEach((chat) =>
           chat.members.forEach((member) => {
             const connections = this.activeConnections.get(member.id);
             if (connections) {

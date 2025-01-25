@@ -92,68 +92,27 @@ export class UserService {
 
   async switchBanUser(userId: number | string) {}
 
-  async findAll(query: usersSearchDto) {
-    let { page = '1', limit = '15' } = query;
-
-    if (parseInt(page) <= 0) page = '1';
-    const take = parseInt(limit, 10) || 15;
-    const skip = ((parseInt(page, 10) || 1) - 1) * take;
-
-    const baseWhere: any = {
-      role: {
-        not: {
-          in: [RolesClass.admin, RolesClass.superAdmin],
-        },
-      },
-    };
-
-    if (query.search) {
-      const search = query.search;
-      baseWhere.OR = [
-        // { email: { contains: search } },
-        // { name: { contains: search } },
-        // { employeeID: { contains: search } }
-      ];
-    }
-
-    if (query.filterParams) {
-      const { isRecipient, isOrderUser, isController } = query.filterParams;
-      if (isRecipient) baseWhere.recipient = true;
-    }
-
-    const totalCount = await this.userBaseDb.count({
-      where: baseWhere,
-    });
-
-    let maxPage = Math.ceil(totalCount / take);
-    if (maxPage <= 0) maxPage = 1;
-
+  async findAll() {
     const users = await this.userBaseDb.findMany({
-      where: baseWhere,
-      take,
-      skip,
       include: {
         EmailUser: true,
         TelegramUser: true,
         GoogleUser: true,
+        followers: true,
+        following: true,
       },
     });
 
-    return {
-      users,
-      pagination: {
-        totalCount,
-        maxPage,
-        currentPage: parseInt(page, 10),
-        limit: take,
-      },
-    };
+    return users;
   }
 
-  async update(userId: string, updateUserDto: UpdateUserDto) {
+  async update(userId: string, updateUserDto: UpdateUserDto, avatarUrl: string | undefined) {
     return await this.userBaseDb.update({
       where: { id: userId },
-      data: updateUserDto,
+      data: {
+        ...updateUserDto,
+        avatar: avatarUrl,
+      },
     });
   }
 
