@@ -13,6 +13,8 @@ import {
 } from './user.service';
 import { FollowModule } from 'src/follow/follow.module';
 import { FollowService } from 'src/follow/follow.service';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 
 @Module({
   imports: [
@@ -27,6 +29,15 @@ import { FollowService } from 'src/follow/follow.service';
         signOptions: { expiresIn: '15d' },
       }),
       inject: [ConfigService],
+    }),
+    MulterModule.register({
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_, file, callback) => {
+          const originalName = file.originalname.replace(/\s+/g, '_');
+          callback(null, `${originalName}`);
+        },
+      }),
     }),
   ],
   controllers: [UserController],
@@ -46,4 +57,4 @@ import { FollowService } from 'src/follow/follow.service';
     GoogleUsersService,
   ],
 })
-export class UsersModule {}
+export class UsersModule { }
