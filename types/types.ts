@@ -1,32 +1,23 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from '@prisma/client';
 
 export class RolesClass {
-    static readonly user: string = 'user'
-    static readonly admin: string = 'admin'
-    static readonly superAdmin: string = 'superAdmin'
+  static readonly user: string = 'user';
+  static readonly admin: string = 'admin';
+  static readonly superAdmin: string = 'superAdmin';
 }
 
-export type UserId = string | number
+export type UserId = string | number;
 
-
-export interface IBasicUser {
-    id: string,
-    role: string,
-
-    EmailUser?,
-    TelegramUser?,
-    GoogleUser?
+export interface AuthBody {
+  email: string;
+  password: string;
 }
-
 
 // ______
 export enum GameTypes {
-    game = 'game',
-    app= 'app',
-
+  game = 'game',
+  app = 'app',
 }
-
-
 
 // export interface ITelegramAuth {
 //     id: number;
@@ -36,7 +27,3 @@ export enum GameTypes {
 //     auth_date: number;
 //     hash: string;
 // }
-
-
-
-

@@ -11,7 +11,6 @@ import {
   UsersAdminService,
   UserService,
 } from './user.service';
-import { FollowModule } from 'src/follow/follow.module';
 import { FollowService } from 'src/follow/follow.service';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -57,4 +56,4 @@ import { diskStorage } from 'multer';
     GoogleUsersService,
   ],
 })
-export class UsersModule { }
+export class UsersModule {}

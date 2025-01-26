@@ -107,13 +107,18 @@ export class UserService {
   }
 
   async update(userId: string, updateUserDto: UpdateUserDto, avatarUrl: string | undefined) {
-    return await this.userBaseDb.update({
-      where: { id: userId },
-      data: {
-        ...updateUserDto,
-        avatar: avatarUrl,
-      },
-    });
+    try {
+      return await this.userBaseDb.update({
+        where: { id: userId },
+        data: {
+          ...updateUserDto,
+          avatar: avatarUrl,
+        },
+      });
+    } catch (error) {
+      console.log('Error [update]', error);
+      throw new BadRequestException(error);
+    }
   }
 
   // async generateUsers(count: number) {
@@ -216,21 +221,19 @@ export class EmailUsersService extends UserService {
 
   async create(createUserDto: RegisterDto) {
     const existingUser = await this.findOne(createUserDto.email);
-    console.log(existingUser);
 
     if (existingUser) {
       throw new BadRequestException(`User already exists`);
     }
 
-    const lastUserId = (await this.userBaseDb.count()) + 1;
-
     const createdUser = await this.userBaseDb.create({
       data: {
-        name: 'User' + lastUserId,
+        name: createUserDto.name,
         alias: nanoid(8),
         EmailUser: {
           create: {
             email: createUserDto.email,
+            password: await argon2.hash(createUserDto.password),
           },
         },
       },
@@ -257,6 +260,13 @@ export class EmailUsersService extends UserService {
       include: {
         userBase: true,
       },
+    });
+    return user;
+  }
+
+  async findOneWithoutUserBase(email: string) {
+    const user = await this.emailUsersDb.findUnique({
+      where: { email },
     });
     return user;
   }

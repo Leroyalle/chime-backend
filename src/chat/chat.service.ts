@@ -54,7 +54,6 @@ export class ChatService {
       const createdChat = await this.dbService.chat.create({
         data: {
           name: `chat ${randInt}`,
-          imageUrl: `https://avatars.githubusercontent.com/u/${randInt}?v=4`,
           members: {
             connect: [{ id: UserBase.id }, { id: recipientId }],
           },
@@ -121,11 +120,14 @@ export class ChatService {
 
       const chatsWithName = chats.map((chat) => ({
         ...chat,
+        recipient: chat.members.find((member) => member.id !== userId),
+        avatar: chat.members.find((member) => member.id !== userId)?.avatar,
         name: chat.members
           .filter((member) => member.id !== userId)
           .map((member) => member.name)
           .join(', '),
       }));
+
       return chatsWithName;
     } catch (error) {
       throw new InternalServerErrorException(error.message);
@@ -150,6 +152,7 @@ export class ChatService {
 
       const chatsWithName = {
         ...chat,
+        recipient: chat.members.find((member) => member.id !== userId),
         name: chat.members
           .filter((member) => member.id !== userId)
           .map((member) => member.name)

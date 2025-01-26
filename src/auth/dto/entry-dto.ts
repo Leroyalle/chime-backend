@@ -1,14 +1,12 @@
-import { Prisma } from "@prisma/client"
-
-
 export interface EntryDto {
-  email: string
+  name: string;
+  email: string;
+  password: string;
 }
 
 export interface EntryAdminDto extends EntryDto {
   password: string;
 }
-
 
 export interface ITelegramAuthDto {
   id: number;
@@ -18,7 +16,6 @@ export interface ITelegramAuthDto {
   auth_date: number;
   hash: string;
 }
-
 
 export interface IGoogleJwtDto {
   clientId: string;
@@ -31,6 +28,4 @@ export interface IGoogleAuthDto {
   name: string;
   given_name: string;
   picture: string;
-
 }
-

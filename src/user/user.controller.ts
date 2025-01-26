@@ -21,6 +21,7 @@ export class UserController {
 
   @Get('me')
   async current(@UserId() userId: string) {
+    console.log('currentUser', userId);
     const findUser = await this.usersService.findUserByIdWithFollow(userId, userId);
     return { user: findUser, isOwner: true };
   }

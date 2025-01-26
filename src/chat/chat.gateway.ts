@@ -149,10 +149,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     try {
       console.log('MESSAGEDATA:', data);
       const UserBase = await this.userService.findUserById(client.userData.userBaseId);
-      let message;
-
       if (data.body.type === MessageTypeEnum.TEXT) {
-        message = await this.dbService.message.create({
+        console.log('[USER-BASE]', UserBase);
+        const message = await this.dbService.message.create({
           data: {
             chatId: data.body.chatId,
             userBaseId: UserBase.id,
@@ -164,7 +163,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
               select: {
                 id: true,
                 name: true,
-                // avatar: true,
+                avatar: true,
               },
             },
           },
@@ -192,6 +191,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
               select: {
                 id: true,
                 name: true,
+                avatar: true,
               },
             },
             lastMessage: true,
@@ -202,6 +202,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         const chatWithName = {
           ...chat,
+          recipient: chat.members.find((member) => member.id !== UserBase.id),
+          avatar: chat.members.find((member) => member.id !== UserBase.id)?.avatar,
           name: chat.members
             .filter((member) => member.id !== UserBase.id)
             .map((member) => member.name)
@@ -300,6 +302,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
               select: {
                 id: true,
                 name: true,
+                avatar: true,
               },
             },
             lastMessage: true,
@@ -308,6 +311,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
         const chatsWithName = chats.map((chat) => ({
           ...chat,
+          recipient: chat.members.find((member) => member.id !== UserBase.id),
+          avatar: chat.members.find((member) => member.id !== UserBase.id)?.avatar,
           name: chat.members
             .filter((member) => member.id !== UserBase.id)
             .map((member) => member.name)

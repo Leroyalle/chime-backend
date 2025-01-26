@@ -50,9 +50,9 @@ model UserBase {
 }
 
 model EmailUser {
-  id       String  @id @default(uuid())
-  email    String  @unique
-  password String?
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
 
   userBaseId String   @unique
   userBase   UserBase @relation(fields: [userBaseId], references: [id])
