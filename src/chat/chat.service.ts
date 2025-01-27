@@ -135,6 +135,7 @@ export class ChatService {
   }
 
   async getChatById(userId: string, chatId: string) {
+    // FIXME: проверка что пользователь является участником чата
     try {
       const chat = await this.chatDb.findUnique({
         where: {

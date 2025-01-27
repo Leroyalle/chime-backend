@@ -52,7 +52,7 @@ export class AuthService {
     const findUser = await this.validateUser(body.email, body.password);
 
     return {
-      token: this.jwtService.sign({ id: findUser.id, role: findUser.userBase.role }),
+      token: this.jwtService.sign({ id: findUser.userBase.id, role: findUser.userBase.role }),
     };
   }
 
