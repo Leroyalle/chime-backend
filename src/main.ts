@@ -16,17 +16,6 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
-  // app.use('/public', express.static(join(__dirname, '..', 'public')));
-  // app.use(express.static(join(__dirname, '../../client/dist')));
-
-  // app.use((req, res, next) => {
-  //   if (req.path.startsWith('/api')) {
-  //     next();
-  //   } else {
-  //     // res.sendFile(join(__dirname, '../../client/dist/index.html'));
-  //   }
-  // });
-
   await app.listen(PORT, () => {
     console.log('Nest application is ready on http://localhost:' + PORT);
   });

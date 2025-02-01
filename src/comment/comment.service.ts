@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  HttpException,
-  HttpStatus,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { DatabaseService } from 'src/database/database.service';
@@ -22,9 +16,7 @@ export class CommentService {
   }
 
   async create(userId: string, createCommentDto: CreateCommentDto) {
-    //TODO not found a post
     const existingPost = await this.postService.findById(createCommentDto.postId);
-    console.log(existingPost);
 
     if (!existingPost) return new NotFoundException(`No post with id ${createCommentDto.postId}`);
 
@@ -44,31 +36,26 @@ export class CommentService {
   }
 
   async getAllByUserId(userId: string, page: number, perPage: number) {
-    try {
-      const comments = await this.commentDb.findMany({
-        where: { userId },
-        include: {
-          post: true,
-          user: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip: (page - 1) * perPage,
-        take: perPage,
-      });
+    const comments = await this.commentDb.findMany({
+      where: { userId },
+      include: {
+        post: true,
+        user: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip: (page - 1) * perPage,
+      take: perPage,
+    });
 
-      const totalItems = await this.commentDb.count({ where: { userId } });
-      const totalPages = Math.ceil(totalItems / perPage);
-      return {
-        data: comments,
-        currentPage: page,
-        totalPages,
-      };
-    } catch (error) {
-      console.log('Error [getPostsByUserId]', error);
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+    const totalItems = await this.commentDb.count({ where: { userId } });
+    const totalPages = Math.ceil(totalItems / perPage);
+    return {
+      data: comments,
+      currentPage: page,
+      totalPages,
+    };
   }
 
   async findOne(id: string) {
@@ -78,13 +65,10 @@ export class CommentService {
   async update(userId: string, id: string, updateCommentDto: UpdateCommentDto) {
     const findComment = await this.commentDb.findUnique({ where: { id } });
 
-    if (!findComment) {
-      return new NotFoundException(`No comment with id ${id}`);
-    }
+    if (!findComment) return new NotFoundException(`No comment with id ${id}`);
 
-    if (findComment.userId != userId) {
+    if (findComment.userId != userId)
       return new BadRequestException(`User is not the author of the comment`);
-    }
 
     return await this.commentDb.update({
       where: { id },

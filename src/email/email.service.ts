@@ -25,8 +25,6 @@ export class EmailService {
       text: `Your verification code is: ${code}`,
     };
 
-    console.log(mailOptions);
-
     try {
       const info = await this.transporter.sendMail(mailOptions);
       console.log('Email sent: ' + info.response);
@@ -50,7 +48,6 @@ export class EmailService {
   ч;
 
   async verifyCode(userId: string, code: string): Promise<boolean> {
-    console.log('verifyCode', userId, code);
     const verificationCode = await this.databaseService.verificationCode.findFirst({
       where: {
         userId,

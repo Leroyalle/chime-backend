@@ -28,18 +28,12 @@ export class PostController {
     @Body() body: { content: string; tags?: string },
     @UserId() userId: string,
   ) {
-    console.log('BODY', body, files);
-    if (!body.content) {
-      throw new BadRequestException('Text must be provided');
-    }
+    if (!body.content) throw new BadRequestException('Text must be provided');
+    if (files && files.length > 4) throw new BadRequestException('Too many images');
 
-    if (files && files.length > 4) {
-      throw new BadRequestException('Too many images');
-    }
-
-    const imagePaths = files.map((file) => `${file.originalname}`);
-
-    console.log(imagePaths);
+    const imagePaths = files.map(
+      (file) => `${Math.random().toString(36).substring(2, 10)}-${file.originalname}`,
+    );
 
     return this.postService.createPost(
       body.content,

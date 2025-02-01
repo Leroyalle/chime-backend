@@ -6,16 +6,10 @@ import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from 'src/user/user.module';
 import { DatabaseModule } from 'src/database/database.module';
 import { ChatController } from './chat.controller';
-import { AuthModule } from 'src/auth/auth.module'; // Импортируем модуль аутентификации
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [
-    JwtModule,
-    ConfigModule,
-    UsersModule,
-    DatabaseModule,
-    AuthModule, // Импортируем модуль аутентификации
-  ],
+  imports: [JwtModule, ConfigModule, UsersModule, DatabaseModule, AuthModule],
 
   providers: [ChatGateway, ChatService],
   controllers: [ChatController],

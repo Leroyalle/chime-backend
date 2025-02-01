@@ -4,7 +4,6 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UserService } from 'src/user/user.service';
 
-
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -16,16 +15,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey: configService.get('JWT_SECRET'),
     });
-
-
   }
 
   async validate(payload: any) {
     const user = await this.usersService.findUserById(String(payload.id));
-    
+
     if (!user) throw new UnauthorizedException('Invalid credentials');
     return user;
   }
-
-
 }

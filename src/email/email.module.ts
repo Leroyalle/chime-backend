@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { EmailService } from './email.service';
 import { EmailController } from './email.controller';
 import { DatabaseModule } from 'src/database/database.module';
-import { AdminModule } from 'src/admin/admin.module';
 
 @Module({
   imports: [DatabaseModule],
@@ -10,4 +9,4 @@ import { AdminModule } from 'src/admin/admin.module';
   providers: [EmailService],
   exports: [EmailService],
 })
-export class EmailModule { }
+export class EmailModule {}

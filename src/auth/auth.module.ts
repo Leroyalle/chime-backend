@@ -1,22 +1,17 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import {
-  AuthController,
-  EmailAuthController,
-  GoogleAuthController,
-  TelegramAuthController,
-} from './auth.controller';
+import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from 'src/database/database.module';
 import { EmailModule } from 'src/email/email.module';
 import { UsersModule } from 'src/user/user.module';
-import { EmailUsersService, TelegramUsersService, UserService } from 'src/user/user.service';
+import { EmailUsersService, UserService } from 'src/user/user.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { FollowModule } from 'src/follow/follow.module';
-import { WsJwtAuthGuard } from './strategies/ws.strategy'; // Импорт гварда
+import { WsJwtAuthGuard } from './strategies/ws.strategy';
 
 @Module({
   imports: [
@@ -35,19 +30,15 @@ import { WsJwtAuthGuard } from './strategies/ws.strategy'; // Импорт гв�
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, EmailAuthController, TelegramAuthController, GoogleAuthController],
+  controllers: [AuthController],
   providers: [
     AuthService,
     LocalStrategy,
     JwtStrategy,
-    TelegramUsersService,
     EmailUsersService,
     UserService,
-    WsJwtAuthGuard, // Добавление гварда в провайдеры
+    WsJwtAuthGuard,
   ],
-  exports: [
-    JwtModule,
-    WsJwtAuthGuard, // Экспорт гварда
-  ],
+  exports: [JwtModule, WsJwtAuthGuard],
 })
 export class AuthModule {}

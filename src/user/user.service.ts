@@ -1,12 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { IGoogleAuthDto, ITelegramAuthDto } from 'src/auth/dto/entry-dto';
 import { RegisterDto } from 'src/auth/dto/register-dto';
 import { DatabaseService } from 'src/database/database.service';
-import { RolesClass } from 'types/types';
-import { AdminDto } from './dto/create-admin-dto';
-import { usersSearchDto } from './dto/usersSearch-dto';
-import { adminData } from './entities/admin.entities';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { FollowService } from 'src/follow/follow.service';
 import { nanoid } from 'nanoid';
@@ -47,36 +42,31 @@ export class UserService {
   }
 
   async findUserByIdWithFollow(findId: string, userId: string) {
-    try {
-      const findUser = await this.userBaseDb.findUnique({
-        where: { id: findId },
-        include: {
-          EmailUser: true,
-          TelegramUser: true,
-          GoogleUser: true,
-          followers: true,
-          following: true,
-        },
-      });
+    const findUser = await this.userBaseDb.findUnique({
+      where: { id: findId },
+      include: {
+        EmailUser: true,
+        TelegramUser: true,
+        GoogleUser: true,
+        followers: true,
+        following: true,
+      },
+    });
 
-      if (!findUser) {
-        throw new NotFoundException('User not found');
-      }
-
-      const isFollowing = await this.followService.findFollow(userId, findId);
-      const followerCount = await this.followService.findCountFollowers(findId);
-      const followingCount = await this.followService.findCountFollowing(findId);
-
-      return {
-        ...findUser,
-        isFollowing: !!isFollowing,
-        followerCount,
-        followingCount,
-      };
-    } catch (error) {
-      console.log('Error [findUserByIdWithFollow]', error);
-      throw new BadRequestException(error);
+    if (!findUser) {
+      throw new NotFoundException('User not found');
     }
+
+    const isFollowing = await this.followService.findFollow(userId, findId);
+    const followerCount = await this.followService.findCountFollowers(findId);
+    const followingCount = await this.followService.findCountFollowing(findId);
+
+    return {
+      ...findUser,
+      isFollowing: !!isFollowing,
+      followerCount,
+      followingCount,
+    };
   }
 
   async findBaseUserByEmailUserId(userId: string) {
@@ -89,8 +79,6 @@ export class UserService {
 
     return await this.findUserById(emailUser.userBaseId);
   }
-
-  async switchBanUser(userId: number | string) {}
 
   async findAll() {
     const users = await this.userBaseDb.findMany({
@@ -107,118 +95,18 @@ export class UserService {
   }
 
   async update(userId: string, updateUserDto: UpdateUserDto, avatarUrl: string | undefined) {
-    try {
-      return await this.userBaseDb.update({
-        where: { id: userId },
-        data: {
-          ...updateUserDto,
-          avatar: avatarUrl,
-        },
-      });
-    } catch (error) {
-      console.log('Error [update]', error);
-      throw new BadRequestException(error);
-    }
+    return await this.userBaseDb.update({
+      where: { id: userId },
+      data: {
+        ...updateUserDto,
+        avatar: avatarUrl,
+      },
+    });
   }
-
-  // async generateUsers(count: number) {
-  //   const users = [];
-  //   for (let i = 0; i < count; i++) {
-  //     const user = {
-  //       employeeID: `emp${i + 1}`,
-  //       phone: `+123456789${i}`,
-  //       email: `user${i + 1}@example.com`,
-  //       name: `User ${i + 1}`,
-  //       password: await argon2.hash(`password${i + 1}`),
-  //       organizationId: null,
-  //     };
-
-  //     users.push(user)
-  //   }
-
-  //   for (const user of users) {
-  //     try {
-  //       await this.createFakeUser(user);
-  //     } catch (error) {
-  //       console.error(`Error creating user`);
-  //       console.log(error)
-  //     }
-  //   }
-  // }
-
-  // async createFakeUser(users: []) {
-  //   await this.databaseService.user.createMany({
-  //     data: users,
-  //   })
-  // }
 }
 
 @Injectable()
 export class EmailUsersService extends UserService {
-  async findOrCreateAdmins(userCreateDto: AdminDto[]) {
-    const existingUsers = await this.userBaseDb.findMany({
-      where: {
-        role: { in: [RolesClass.admin, RolesClass.superAdmin] },
-        EmailUser: {
-          email: { in: userCreateDto.map((u) => u.email) },
-        },
-      },
-      include: {
-        EmailUser: true,
-      },
-    });
-
-    const existingEmails = existingUsers.flatMap((user) =>
-      user.EmailUser ? [user.EmailUser.email] : [],
-    );
-
-    const usersToCreate = userCreateDto.filter((user) => !existingEmails.includes(user.email));
-    console.log(usersToCreate);
-
-    const createdUsers = await Promise.all(
-      usersToCreate.map(async (user) => {
-        const newUserBase = await this.userBaseDb.create({
-          data: {
-            alias: nanoid(8),
-            role: user.role,
-            name: user.role,
-            EmailUser: {
-              create: {
-                email: user.email,
-                password: await argon2.hash(user.password),
-              },
-            },
-          },
-        });
-        return newUserBase;
-      }),
-    );
-
-    await Promise.all(
-      existingUsers.map(async (existingUser) => {
-        const userDto = userCreateDto.find((u) => u.email === existingUser.EmailUser?.email);
-
-        if (userDto && existingUser.EmailUser?.password) {
-          const isPasswordUpdated = await argon2.verify(
-            existingUser.EmailUser.password,
-            userDto.password,
-          );
-
-          if (!isPasswordUpdated) {
-            await this.emailUsersDb.update({
-              where: { id: existingUser.EmailUser.id },
-              data: {
-                password: await argon2.hash(userDto.password),
-              },
-            });
-          }
-        }
-      }),
-    );
-
-    return { existingEmails, usersToCreate, createdUsers };
-  }
-
   async create(createUserDto: RegisterDto) {
     const existingUser = await this.findOne(createUserDto.email);
 
@@ -262,141 +150,5 @@ export class EmailUsersService extends UserService {
       },
     });
     return user;
-  }
-
-  async findOneWithoutUserBase(email: string) {
-    const user = await this.emailUsersDb.findUnique({
-      where: { email },
-    });
-    return user;
-  }
-
-  async findOneById(id: string) {
-    return this.emailUsersDb.findUnique({
-      where: { id },
-    });
-  }
-
-  async createAdminsOnInit() {
-    return await this.findOrCreateAdmins(adminData);
-  }
-}
-
-@Injectable()
-export class TelegramUsersService extends UserService {
-  async findOrCreate(telegramData: ITelegramAuthDto) {
-    console.log(telegramData);
-    const existingUser = await this.findOneByTelegramId(telegramData.id);
-
-    console.log(existingUser);
-    if (existingUser) {
-      return await this.findUserById(existingUser.userBaseId);
-    }
-
-    const createdUser = await this.userBaseDb.create({
-      data: {
-        alias: nanoid(8),
-        TelegramUser: {
-          create: {
-            telegramId: telegramData.id.toString(),
-            username: telegramData.username,
-            firstName: telegramData.first_name,
-            photoUrl: telegramData.photo_url,
-            authDate: new Date(telegramData.auth_date * 1000),
-          },
-        },
-      },
-      include: {
-        TelegramUser: true,
-      },
-    });
-
-    return createdUser;
-  }
-
-  async findOneByTelegramId(telegramId: string | number) {
-    return await this.telegramUsersDb.findUnique({
-      where: { telegramId: telegramId.toString() },
-    });
-  }
-
-  async findOneById(id: string) {
-    return this.telegramUsersDb.findUnique({
-      where: { id },
-    });
-  }
-}
-
-@Injectable()
-export class GoogleUsersService extends UserService {
-  async findOrCreate(googleData: IGoogleAuthDto) {
-    const existingUser = await this.findOneByEmail(googleData.email);
-
-    console.log(existingUser);
-    if (existingUser) {
-      return await this.findUserById(existingUser.userBaseId);
-    }
-
-    const createdUser = await this.userBaseDb.create({
-      data: {
-        alias: nanoid(8),
-        GoogleUser: {
-          create: {
-            email: googleData.email,
-            name: googleData.name,
-            photoUrl: googleData.picture,
-            givenName: googleData.given_name,
-          },
-        },
-      },
-      include: {
-        GoogleUser: true,
-      },
-    });
-
-    return createdUser;
-  }
-
-  async findOneByEmail(email: string) {
-    return await this.googleUsersDb.findUnique({
-      where: { email },
-    });
-  }
-
-  async findOneById(id: string) {
-    return this.googleUsersDb.findUnique({
-      where: { id },
-    });
-  }
-}
-
-@Injectable()
-export class UsersAdminService extends UserService {
-  async getAdmins() {
-    return await this.userBaseDb.findMany({
-      where: {
-        role: RolesClass.admin,
-      },
-    });
-  }
-
-  async switchBanAdmins(adminId: string) {
-    const admin = await this.userBaseDb.findUnique({
-      where: { id: adminId },
-      select: { banned: true },
-    });
-
-    if (!admin) throw new Error('Admin not found');
-
-    const banned = !admin.banned;
-
-    await this.userBaseDb.update({
-      where: { id: adminId },
-      data: {
-        banned: banned,
-      },
-    });
-
-    return { banned };
   }
 }

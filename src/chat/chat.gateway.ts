@@ -147,10 +147,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @MessageBody() data: Message,
   ): Promise<void> {
     try {
-      console.log('MESSAGEDATA:', data);
       const UserBase = await this.userService.findUserById(client.userData.userBaseId);
       if (data.body.type === MessageTypeEnum.TEXT) {
-        console.log('[USER-BASE]', UserBase);
         const message = await this.dbService.message.create({
           data: {
             chatId: data.body.chatId,

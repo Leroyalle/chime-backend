@@ -20,7 +20,6 @@ export class LikeService {
     if (existingLike) return new BadGatewayException(`Already associated with ${postId}`);
     if (!existingPost) return new BadGatewayException(`Post with ID ${postId} not found`);
 
-    console.log(postId, userId);
     const like = await this.likeDb.create({
       data: { postId, userId },
     });

@@ -26,13 +26,6 @@ export class UserController {
     return { user: findUser, isOwner: true };
   }
 
-  @Get('all')
-  async allUsers() {
-    console.log('all');
-    const findUsers = await this.usersService.findAll();
-    return findUsers;
-  }
-
   @Patch('me')
   @UseInterceptors(FileInterceptor('avatar'))
   async updateUser(
@@ -40,8 +33,9 @@ export class UserController {
     @UserId() userId: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    const avatarUrl = file ? `${file.originalname}` : undefined;
-    console.log('avatarUrl', avatarUrl);
+    const avatarUrl = file
+      ? `${Math.random().toString(36).substring(2, 10)}-${file.originalname}`
+      : undefined;
     return await this.usersService.update(userId, updateUserDto, avatarUrl);
   }
 

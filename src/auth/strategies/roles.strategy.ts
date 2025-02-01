@@ -5,10 +5,14 @@ import { ROLES_KEY } from 'src/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector, private jwtService: JwtService) { }
+  constructor(
+    private reflector: Reflector,
+    private jwtService: JwtService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.get<string[]>(ROLES_KEY, context.getHandler()) ||
+    const requiredRoles =
+      this.reflector.get<string[]>(ROLES_KEY, context.getHandler()) ||
       this.reflector.get<string[]>(ROLES_KEY, context.getClass());
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
@@ -27,4 +31,3 @@ export class RolesGuard implements CanActivate {
     return requiredRoles ? requiredRoles.includes(user.role) : true;
   }
 }
-

@@ -19,13 +19,10 @@ export class WsJwtAuthGuard implements CanActivate {
     const client: Socket = context.switchToWs().getClient();
     const token = client.handshake.auth?.token;
 
-    // console.log(token);
-
     if (!token) return handleWsError(client, 'Invalid token');
 
     try {
       const payload = this.jwtService.verify(token, { secret: this.secretKey });
-      console.log('JWT Payload:', payload);
 
       if (!payload) {
         return handleWsError(client, 'Invalid token');
@@ -35,9 +32,7 @@ export class WsJwtAuthGuard implements CanActivate {
         client.userData = {};
       }
 
-      // console.log(payload.id)
       const user = await this.userService.findUserById(payload.id);
-      // console.log(user)
 
       if (!user) return handleWsError(client, 'User not found');
 
@@ -45,7 +40,6 @@ export class WsJwtAuthGuard implements CanActivate {
       return true;
     } catch (err) {
       handleWsError(client, 'Invalid token');
-      // console.error('JWT error:', err)
 
       return false;
     }

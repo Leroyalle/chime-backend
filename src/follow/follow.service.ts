@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadGatewayException, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
@@ -52,25 +52,21 @@ export class FollowService {
     page: number;
     perPage: number;
   }) {
-    try {
-      const followers = await this.followDb.findMany({
-        where: {
-          followingId: userId,
-        },
-        include: {
-          follower: true,
-        },
-        take: perPage,
-        skip: (page - 1) * perPage,
-      });
+    const followers = await this.followDb.findMany({
+      where: {
+        followingId: userId,
+      },
+      include: {
+        follower: true,
+      },
+      take: perPage,
+      skip: (page - 1) * perPage,
+    });
 
-      const totalItems = await this.findCountFollowers(userId);
-      const totalPages = Math.ceil(totalItems / perPage);
+    const totalItems = await this.findCountFollowers(userId);
+    const totalPages = Math.ceil(totalItems / perPage);
 
-      return { data: followers, totalItems, totalPages };
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
+    return { data: followers, totalItems, totalPages };
   }
 
   async findFollowingById({
@@ -82,29 +78,25 @@ export class FollowService {
     page: number;
     perPage: number;
   }) {
-    try {
-      const following = await this.followDb.findMany({
-        where: {
-          followerId: userId,
-        },
-        include: {
-          following: true,
-        },
-        take: perPage,
-        skip: (page - 1) * perPage,
-      });
+    const following = await this.followDb.findMany({
+      where: {
+        followerId: userId,
+      },
+      include: {
+        following: true,
+      },
+      take: perPage,
+      skip: (page - 1) * perPage,
+    });
 
-      const totalItems = await this.findCountFollowing(userId);
-      const totalPages = Math.ceil(totalItems / perPage);
+    const totalItems = await this.findCountFollowing(userId);
+    const totalPages = Math.ceil(totalItems / perPage);
 
-      return {
-        data: following,
-        totalItems,
-        totalPages,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
+    return {
+      data: following,
+      totalItems,
+      totalPages,
+    };
   }
 
   async findFriendsById({
@@ -116,51 +108,44 @@ export class FollowService {
     page?: number;
     perPage?: number;
   }) {
-    try {
-      const followers = await this.followDb.findMany({
-        where: {
-          followingId: userId,
-        },
-        select: {
-          followerId: true,
-        },
-      });
+    const followers = await this.followDb.findMany({
+      where: {
+        followingId: userId,
+      },
+      select: {
+        followerId: true,
+      },
+    });
 
-      const following = await this.followDb.findMany({
-        where: {
-          followerId: userId,
-        },
-        select: {
-          followingId: true,
-        },
-      });
+    const following = await this.followDb.findMany({
+      where: {
+        followerId: userId,
+      },
+      select: {
+        followingId: true,
+      },
+    });
 
-      const followerIds = followers.map((f) => f.followerId);
-      const followingIds = following.map((f) => f.followingId);
-      const friendIds = followerIds.filter((id) => followingIds.includes(id));
+    const followerIds = followers.map((f) => f.followerId);
+    const followingIds = following.map((f) => f.followingId);
+    const friendIds = followerIds.filter((id) => followingIds.includes(id));
 
-      const friends = await this.userBaseDb.findMany({
-        where: {
-          id: { in: friendIds },
-        },
-        take: perPage,
-        skip: (page - 1) * perPage,
-      });
+    const friends = await this.userBaseDb.findMany({
+      where: {
+        id: { in: friendIds },
+      },
+      take: perPage,
+      skip: (page - 1) * perPage,
+    });
 
-      console.log(friends);
+    const totalItems = await this.findCountFriends(userId);
+    const totalPages = Math.ceil(totalItems / perPage);
 
-      const totalItems = await this.findCountFriends(userId);
-      const totalPages = Math.ceil(totalItems / perPage);
-
-      return {
-        data: friends,
-        totalItems,
-        totalPages,
-      };
-    } catch (error) {
-      console.log('Error [GET_FRIENDS_BY_ID]', error);
-      throw new InternalServerErrorException(error.message);
-    }
+    return {
+      data: friends,
+      totalItems,
+      totalPages,
+    };
   }
 
   async findFollow(followerId: string, followingId: string) {

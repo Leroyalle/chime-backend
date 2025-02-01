@@ -1,12 +1,7 @@
-import {
-  Injectable,
-  HttpException,
-  HttpStatus,
-  NotFoundException,
-  BadRequestException,
-  BadGatewayException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
+import { postIncludes } from '../shared/constants';
+import { addPostInteractionsData } from 'src/shared';
 
 @Injectable()
 export class PostService {
@@ -56,12 +51,7 @@ export class PostService {
 
     const posts = await this.postDb.findMany({
       include: {
-        author: true,
-        likes: true,
-        comments: true,
-        tags: true,
-        bookmarks: true,
-        images: true,
+        ...postIncludes,
         _count: {
           select: { likes: true },
         },
@@ -71,13 +61,7 @@ export class PostService {
       take: perPage,
     });
 
-    const enhancedPost = posts.map((post) => ({
-      ...post,
-      isLiked: post.likes.some((like) => like.userId === userId),
-      isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
-      likesCount: post.likes.length,
-      commentsCount: post.comments.length,
-    }));
+    const enhancedPost = posts.map((post) => addPostInteractionsData(post, userId));
 
     const totalPosts = await this.postDb.count();
     const totalPages = Math.ceil(totalPosts / perPage);
@@ -109,55 +93,31 @@ export class PostService {
 
     if (!post) throw new NotFoundException('Post not found');
 
-    const enhancedPost = {
-      ...post,
-      isLiked: post.likes.some((like) => like.userId === userId),
-      isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
-      likesCount: post.likes.length,
-      commentsCount: post.comments.length,
-    };
+    const enhancedPost = addPostInteractionsData(post, userId);
 
     return enhancedPost;
   }
 
   async getAllPostsByUserId(userId: string, userPostId: string, page: number, perPage: number) {
-    try {
-      const posts = await this.postDb.findMany({
-        where: { authorId: userPostId },
-        include: {
-          author: true,
-          likes: true,
-          comments: true,
-          tags: true,
-          bookmarks: true,
-          images: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip: (page - 1) * perPage,
-        take: perPage,
-      });
+    const posts = await this.postDb.findMany({
+      where: { authorId: userPostId },
+      include: postIncludes,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip: (page - 1) * perPage,
+      take: perPage,
+    });
 
-      const enhancedPost = posts.map((post) => ({
-        ...post,
-        isLiked: post.likes.some((like) => like.userId === userId),
-        isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
-        likesCount: post.likes.length,
-        commentsCount: post.comments.length,
-      }));
+    const enhancedPost = posts.map((post) => addPostInteractionsData(post, userId));
 
-      const totalPosts = await this.postDb.count();
-      const totalPages = Math.ceil(totalPosts / perPage);
-      return {
-        data: enhancedPost,
-        currentPage: page,
-        totalPages,
-      };
-    } catch (error) {
-      console.log('Error [getPostsByUserId]', error);
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+    const totalPosts = await this.postDb.count();
+    const totalPages = Math.ceil(totalPosts / perPage);
+    return {
+      data: enhancedPost,
+      currentPage: page,
+      totalPages,
+    };
   }
 
   async getAllUserLikes({
@@ -169,55 +129,37 @@ export class PostService {
     page: number;
     perPage: number;
   }) {
-    try {
-      const likedPosts = await this.postDb.findMany({
-        where: {
-          likes: {
-            some: {
-              userId,
-            },
+    const likedPosts = await this.postDb.findMany({
+      where: {
+        likes: {
+          some: {
+            userId,
           },
         },
-        include: {
-          author: true,
-          likes: true,
-          comments: true,
-          tags: true,
-          bookmarks: true,
-          images: true,
-        },
-        skip: (page - 1) * perPage,
-        take: perPage,
-      });
+      },
+      include: postIncludes,
+      skip: (page - 1) * perPage,
+      take: perPage,
+    });
 
-      const enhancedPost = likedPosts.map((post) => ({
-        ...post,
-        isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
-        isLiked: post.likes.some((like) => like.userId === userId),
-        likesCount: post.likes.length,
-        commentsCount: post.comments.length,
-      }));
+    const enhancedPost = likedPosts.map((post) => addPostInteractionsData(post, userId));
 
-      const totalItems = await this.postDb.count({
-        where: {
-          likes: {
-            some: {
-              userId,
-            },
+    const totalItems = await this.postDb.count({
+      where: {
+        likes: {
+          some: {
+            userId,
           },
         },
-      });
-      const totalPages = Math.ceil(totalItems / perPage);
+      },
+    });
+    const totalPages = Math.ceil(totalItems / perPage);
 
-      return {
-        data: enhancedPost,
-        totalItems,
-        totalPages,
-      };
-    } catch (error) {
-      console.log('[GET_USER_LIKES]', error);
-      throw new BadGatewayException(`Failed to get user likes`);
-    }
+    return {
+      data: enhancedPost,
+      totalItems,
+      totalPages,
+    };
   }
 
   async deletePost(postId: string, userId: string) {

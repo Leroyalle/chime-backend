@@ -3,3 +3,7 @@ export class RegisterDto {
   email: string;
   password: string;
 }
+export interface AuthBody {
+  email: string;
+  password: string;
+}
