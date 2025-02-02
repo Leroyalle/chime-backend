@@ -9,13 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
-import {
-  InternalServerErrorException,
-  NotFoundException,
-  OnModuleInit,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+import { UsePipes, ValidationPipe } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { DatabaseService } from 'src/database/database.service';
 import { ConfigService } from '@nestjs/config';
@@ -37,10 +31,7 @@ declare module 'socket.io' {
     origin: '*',
   },
 })
-// @UseGuards(WsJwtAuthGuard)
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
-  // private connectedSockets: string[] = [];
-
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private activeConnections: Map<string, Set<string>> = new Map();
 
   constructor(
@@ -108,33 +99,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
   }
 
-  @SubscribeMessage('checkData')
-  async connect(@ConnectedSocket() client: Socket) {
-    console.log('ID', client.userData.userBaseId);
-
-    const userId = client.userData.userBaseId;
-
-    if (!userId) {
-      client.emit('error', { message: 'User not authenticated' });
-      return;
-    }
-
-    const chats = await this.dbService.chat.findMany({
-      where: {
-        members: {
-          some: {
-            id: userId,
-          },
-        },
-      },
-      orderBy: {
-        lastMessageAt: 'desc',
-      },
-    });
-
-    client.emit('checkData', chats);
-  }
-
   @SubscribeMessage('post:new')
   async broadcastNewPost(@ConnectedSocket() client: Socket) {
     client.broadcast.emit('post:new', true);
@@ -146,194 +110,45 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() data: Message,
   ): Promise<void> {
-    try {
-      const UserBase = await this.userService.findUserById(client.userData.userBaseId);
-      if (data.body.type === MessageTypeEnum.TEXT) {
-        const message = await this.dbService.message.create({
-          data: {
-            chatId: data.body.chatId,
-            userBaseId: UserBase.id,
-            content: data.body.content,
-            type: data.body.type,
-          },
-          include: {
-            UserBase: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-              },
-            },
-          },
-        });
+    const UserBase = await this.userService.findUserById(client.userData.userBaseId);
 
-        const findChat = await this.dbService.chat.findUnique({
-          where: {
-            id: data.body.chatId,
-          },
-        });
+    if (data.body.type === MessageTypeEnum.TEXT) {
+      const { chat, message } = await this.chatService.storeMessageInChat(data, UserBase.id);
 
-        if (!findChat) {
-          throw new NotFoundException('Chat not found');
+      chat.members.forEach((member) => {
+        const connections = this.activeConnections.get(member.id);
+        if (connections) {
+          connections.forEach((socketId) => {
+            this.server.to(socketId).emit('messages:get', {
+              chat,
+              message,
+            });
+          });
         }
+      });
+      return;
+    }
 
-        const chat = await this.dbService.chat.update({
-          where: { id: findChat.id },
-          data: {
-            lastMessage: {
-              connect: { id: message.id },
-            },
-          },
-          include: {
-            members: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-              },
-            },
-            lastMessage: true,
-          },
-        });
+    if (data.body.type === MessageTypeEnum.POST) {
+      const { chats, findMessages } = await this.chatService.storeRepostInChats(
+        data,
+        client.userData.userBaseId,
+      );
 
-        const memberIds = chat.members.map((member) => member.id);
-
-        const chatWithName = {
-          ...chat,
-          recipient: chat.members.find((member) => member.id !== UserBase.id),
-          avatar: chat.members.find((member) => member.id !== UserBase.id)?.avatar,
-          name: chat.members
-            .filter((member) => member.id !== UserBase.id)
-            .map((member) => member.name)
-            .join(', '),
-        };
-
-        memberIds.forEach((memberId) => {
-          const connections = this.activeConnections.get(memberId);
+      chats.forEach((chat) =>
+        chat.members.forEach((member) => {
+          const connections = this.activeConnections.get(member.id);
           if (connections) {
             connections.forEach((socketId) => {
               this.server.to(socketId).emit('messages:get', {
-                chat: chatWithName,
-                message,
+                chat,
+                message: findMessages.find((msg) => msg.chatId === chat.id),
               });
             });
           }
-        });
-        return;
-      }
-
-      if (data.body.type === MessageTypeEnum.POST) {
-        const findPost = await this.dbService.post.findUnique({
-          where: {
-            id: data.body.postId,
-          },
-        });
-
-        if (!findPost) {
-          throw new NotFoundException('Post not found');
-        }
-
-        const messageCreationResult = await this.dbService.message.createMany({
-          data: data.body.chatIds.map((chatId) => ({
-            chatId,
-            userBaseId: UserBase.id,
-            content: data.body.content,
-            type: data.body.type,
-            postId: findPost.id,
-          })),
-        });
-
-        const findMessages = await this.dbService.message.findMany({
-          where: {
-            chatId: { in: data.body.chatIds },
-            userBaseId: UserBase.id,
-            content: data.body.content,
-            type: data.body.type,
-            postId: findPost.id,
-          },
-          include: {
-            post: {
-              include: {
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    avatar: true,
-                  },
-                },
-                images: true,
-              },
-            },
-            UserBase: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-          take: messageCreationResult.count,
-        });
-
-        await this.dbService.$transaction(
-          data.body.chatIds.map((chatId, index) =>
-            this.dbService.chat.update({
-              where: { id: chatId },
-              data: {
-                lastMessage: {
-                  connect: { id: findMessages[index].id },
-                },
-              },
-            }),
-          ),
-        );
-
-        const chats = await this.dbService.chat.findMany({
-          where: {
-            id: {
-              in: data.body.chatIds,
-            },
-          },
-          include: {
-            members: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-              },
-            },
-            lastMessage: true,
-          },
-        });
-
-        const chatsWithName = chats.map((chat) => ({
-          ...chat,
-          recipient: chat.members.find((member) => member.id !== UserBase.id),
-          avatar: chat.members.find((member) => member.id !== UserBase.id)?.avatar,
-          name: chat.members
-            .filter((member) => member.id !== UserBase.id)
-            .map((member) => member.name)
-            .join(', '),
-        }));
-
-        chatsWithName.forEach((chat) =>
-          chat.members.forEach((member) => {
-            const connections = this.activeConnections.get(member.id);
-            if (connections) {
-              connections.forEach((socketId) => {
-                this.server.to(socketId).emit('messages:get', {
-                  chat,
-                  message: findMessages.find((msg) => msg.chatId === chat.id),
-                });
-              });
-            }
-          }),
-        );
-      }
-    } catch (error) {
-      console.log('Error [sendMessage]', error);
-      throw new InternalServerErrorException(error.message);
+        }),
+      );
+      return;
     }
   }
 
@@ -342,101 +157,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { messageId: string; messageBody: string },
   ) {
-    try {
-      const findMessage = await this.dbService.message.findFirst({
-        where: {
-          id: data.messageId,
-        },
-      });
+    const { id: userId } = await this.userService.findUserById(client.userData.userBaseId);
+    const { chat, message } = await this.chatService.storeUpdatedMessage(data, userId);
 
-      if (!findMessage) {
-        console.log('Message not found');
-        return;
-      }
-
-      const updatedMessage = await this.dbService.message.update({
-        where: {
-          id: data.messageId,
-        },
-        data: {
-          content: data.messageBody,
-        },
-        include: {
-          post: {
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  avatar: true,
-                },
-              },
-              images: true,
-            },
-          },
-          UserBase: {
-            select: {
-              id: true,
-              name: true,
-              avatar: true,
-            },
-          },
-        },
-      });
-
-      const findChat = await this.dbService.chat.findUnique({
-        where: {
-          id: findMessage.chatId,
-        },
-      });
-
-      if (!findChat) {
-        throw new NotFoundException('Chat not found');
-      }
-
-      const chat = await this.dbService.chat.update({
-        where: { id: findMessage.chatId },
-        data: {
-          lastMessage: {
-            connect:
-              findChat.lastMessageId === data.messageId
-                ? { id: updatedMessage.id }
-                : { id: findChat.lastMessageId },
-          },
-        },
-
-        include: {
-          members: {
-            select: {
-              id: true,
-            },
-          },
-          lastMessage: {
-            include: {
-              UserBase: {
-                select: {
-                  id: true,
-                  name: true,
-                  avatar: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      console.log({
-        chat,
-        message: updatedMessage,
-      });
-
-      this.server.emit('messages:patch', {
-        chat,
-        message: updatedMessage,
-      });
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
+    this.server.emit('messages:patch', {
+      chat,
+      message,
+    });
   }
 
   @SubscribeMessage('messages:delete')
@@ -444,73 +171,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { messageId: string },
   ) {
-    try {
-      console.log(data);
+    const { id: userId } = await this.userService.findUserById(client.userData.userBaseId);
+    const { chat, message } = await this.chatService.deleteMessage(data, userId);
 
-      const existingMessage = await this.dbService.message.findUnique({
-        where: { id: data.messageId },
-      });
-
-      if (!existingMessage) {
-        console.log('Message not found');
-        return;
-      }
-
-      const deletedMessage = await this.dbService.message.delete({
-        where: { id: data.messageId },
-      });
-
-      const newLastMessage = await this.dbService.message.findFirst({
-        where: { chatId: deletedMessage.chatId },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      const updatedChat = await this.dbService.chat.update({
-        where: { id: deletedMessage.chatId },
-        data: {
-          lastMessage: newLastMessage
-            ? { connect: { id: newLastMessage.id } }
-            : { disconnect: true },
-        },
-        include: {
-          members: {
-            select: {
-              id: true,
-            },
-          },
-          lastMessage: {
-            include: {
-              UserBase: {
-                select: {
-                  id: true,
-                  name: true,
-                  avatar: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      console.log({
-        chat: updatedChat,
-        message: deletedMessage,
-      });
-
-      this.server.emit('messages:delete', {
-        chat: updatedChat,
-        message: deletedMessage,
-      });
-    } catch (error) {
-      console.log('Error [deleteMessage]', error);
-      throw new InternalServerErrorException(error.message);
-    }
-  }
-
-  async onModuleInit() {
-    setInterval(() => {
-      // console.log('Active sockets:', this.activeConnections);
-      // console.log('Active sockets:', this.connectedSockets.length);
-    }, 10000);
+    this.server.emit('messages:delete', {
+      chat,
+      message,
+    });
   }
 }

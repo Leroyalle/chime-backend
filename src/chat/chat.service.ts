@@ -1,11 +1,9 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { UserService } from 'src/user/user.service';
+import { Message } from './dto/message.dto';
+import { MessageTypeEnum } from './dto/message-type.enum';
+import { chatInclude, messageInclude } from './constants';
 
 @Injectable()
 export class ChatService {
@@ -22,162 +20,127 @@ export class ChatService {
   }
 
   async createChat(userId: string, recipientId: string) {
-    try {
-      const UserBase = await this.userService.findUserById(userId);
+    const UserBase = await this.userService.findUserById(userId);
 
-      if (!UserBase) {
-        throw new NotFoundException('User not found');
-      }
-
-      const existingChat = await this.dbService.chat.findFirst({
-        where: {
-          AND: [
-            { members: { some: { id: UserBase.id } } },
-            { members: { some: { id: recipientId } } },
-          ],
-        },
-        include: {
-          members: true,
-        },
-      });
-
-      if (existingChat) {
-        return { chatId: existingChat.id };
-      }
-
-      if (UserBase.id == recipientId) {
-        throw new BadRequestException('Cannot create a chat with yourself');
-      }
-
-      const randInt = (100 + Math.random() * 100000).toFixed(0);
-
-      const createdChat = await this.dbService.chat.create({
-        data: {
-          name: `chat ${randInt}`,
-          members: {
-            connect: [{ id: UserBase.id }, { id: recipientId }],
-          },
-        },
-        include: {
-          members: true,
-        },
-      });
-
-      return { chatId: createdChat.id };
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
+    if (!UserBase) {
+      throw new NotFoundException('User not found');
     }
+
+    const existingChat = await this.dbService.chat.findFirst({
+      where: {
+        AND: [
+          { members: { some: { id: UserBase.id } } },
+          { members: { some: { id: recipientId } } },
+        ],
+      },
+      include: {
+        members: true,
+      },
+    });
+
+    if (existingChat) {
+      return { chatId: existingChat.id };
+    }
+
+    if (UserBase.id == recipientId) {
+      throw new BadRequestException('Cannot create a chat with yourself');
+    }
+
+    const createdChat = await this.dbService.chat.create({
+      data: {
+        name: `${userId}-${recipientId}`.slice(0, 15),
+        members: {
+          connect: [{ id: UserBase.id }, { id: recipientId }],
+        },
+      },
+      include: {
+        members: true,
+      },
+    });
+
+    return { chatId: createdChat.id };
   }
 
   async getUserChats(userId: string, query: string) {
-    console.log(query);
-    try {
-      const chats = await this.chatDb.findMany({
-        where: {
-          AND: [
-            {
-              members: {
-                some: {
-                  id: userId,
-                },
+    const chats = await this.chatDb.findMany({
+      where: {
+        AND: [
+          {
+            members: {
+              some: {
+                id: userId,
               },
             },
-            {
-              members: {
-                some: {
-                  AND: [
-                    {
-                      id: {
-                        not: userId,
-                      },
+          },
+          {
+            members: {
+              some: {
+                AND: [
+                  {
+                    id: {
+                      not: userId,
                     },
-                    {
-                      name: {
-                        contains: query,
-                        mode: 'insensitive',
-                      },
+                  },
+                  {
+                    name: {
+                      contains: query,
+                      mode: 'insensitive',
                     },
-                  ],
-                },
+                  },
+                ],
               },
             },
-          ],
-        },
-        include: {
-          members: true,
-          lastMessage: {
-            include: {
-              UserBase: true,
-            },
           },
+        ],
+      },
+      include: chatInclude,
+      orderBy: {
+        lastMessage: {
+          createdAt: 'desc',
         },
-        orderBy: {
-          lastMessage: {
-            createdAt: 'desc',
-          },
-        },
-      });
+      },
+    });
 
-      const chatsWithName = chats.map((chat) => ({
-        ...chat,
-        recipient: chat.members.find((member) => member.id !== userId),
-        avatar: chat.members.find((member) => member.id !== userId)?.avatar,
-        name: chat.members
-          .filter((member) => member.id !== userId)
-          .map((member) => member.name)
-          .join(', '),
-      }));
-
-      return chatsWithName;
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
+    return chats;
   }
 
   async getChatById(userId: string, chatId: string) {
-    // FIXME: проверка что пользователь является участником чата
-    try {
-      const chat = await this.chatDb.findUnique({
-        where: {
-          id: chatId,
-        },
-        include: {
-          members: true,
-          lastMessage: true,
-        },
-      });
-
-      if (!chat) {
-        throw new NotFoundException('Chat not found');
-      }
-
-      const chatsWithName = {
-        ...chat,
-        recipient: chat.members.find((member) => member.id !== userId),
-        name: chat.members
-          .filter((member) => member.id !== userId)
-          .map((member) => member.name)
-          .join(', '),
-      };
-
-      return chatsWithName;
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
+    return await this.checkIfUserIsInChat(userId, chatId);
   }
 
   async getChatMessagesByChatId(userId: string, chatId: string, page: number, perPage: number) {
-    try {
-      const messages = await this.messageDb.findMany({
-        where: {
-          chatId,
-        },
-        skip: (page - 1) * perPage,
-        take: perPage,
-        orderBy: {
-          createdAt: 'desc',
-        },
+    const messages = await this.messageDb.findMany({
+      where: {
+        chatId,
+      },
+      skip: (page - 1) * perPage,
+      take: perPage,
+      orderBy: {
+        createdAt: 'desc',
+      },
 
+      include: messageInclude,
+    });
+
+    const totalItems = await this.messageDb.count({ where: { chatId } });
+    const totalPages = Math.ceil(totalItems / perPage);
+
+    return {
+      data: messages,
+      currentPage: page,
+      totalPages,
+    };
+  }
+
+  async storeMessageInChat(data: Message, userId: string) {
+    if (data.body.type === MessageTypeEnum.TEXT) {
+      const message = await this.dbService.message.create({
+        data: {
+          chatId: data.body.chatId,
+          userBaseId: userId,
+          content: data.body.content,
+          type: data.body.type,
+        },
         include: {
           UserBase: {
             select: {
@@ -186,31 +149,163 @@ export class ChatService {
               avatar: true,
             },
           },
-          post: {
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  avatar: true,
-                },
-              },
-              images: true,
-            },
-          },
         },
       });
 
-      const totalItems = await this.messageDb.count({ where: { chatId } });
-      const totalPages = Math.ceil(totalItems / perPage);
+      const findChat = await this.checkIfUserIsInChat(userId, message.chatId);
 
-      return {
-        data: messages,
-        currentPage: page,
-        totalPages,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      const chat = await this.dbService.chat.update({
+        where: { id: findChat.id },
+        data: {
+          lastMessage: {
+            connect: { id: message.id },
+          },
+        },
+        include: chatInclude,
+      });
+
+      return { chat, message };
     }
+  }
+
+  async storeRepostInChats(data: Message, userId: string) {
+    if (data.body.type === MessageTypeEnum.POST) {
+      const findPost = await this.dbService.post.findUnique({
+        where: {
+          id: data.body.postId,
+        },
+      });
+
+      if (!findPost) {
+        throw new NotFoundException('Post not found');
+      }
+
+      const messageCreationResult = await this.dbService.message.createMany({
+        data: data.body.chatIds.map((chatId) => ({
+          chatId,
+          userBaseId: userId,
+          content: data.body.content,
+          type: data.body.type,
+          postId: findPost.id,
+        })),
+      });
+
+      const findMessages = await this.dbService.message.findMany({
+        where: {
+          chatId: { in: data.body.chatIds },
+          userBaseId: userId,
+          content: data.body.content,
+          type: data.body.type,
+          postId: findPost.id,
+        },
+        include: messageInclude,
+        orderBy: { createdAt: 'desc' },
+        take: messageCreationResult.count,
+      });
+
+      await this.dbService.$transaction(
+        data.body.chatIds.map((chatId, index) =>
+          this.dbService.chat.update({
+            where: { id: chatId },
+            data: {
+              lastMessage: {
+                connect: { id: findMessages[index].id },
+              },
+            },
+          }),
+        ),
+      );
+
+      const chats = await this.dbService.chat.findMany({
+        where: {
+          AND: [{ id: { in: data.body.chatIds } }, { members: { some: { id: userId } } }],
+        },
+        include: chatInclude,
+      });
+
+      return { chats, findMessages };
+    }
+  }
+
+  async storeUpdatedMessage(data: { messageId: string; messageBody: string }, userId: string) {
+    const findMessage = await this.checkIfMessageBelongsToUser(userId, data.messageId);
+    const findChat = await this.checkIfUserIsInChat(userId, findMessage.chatId);
+
+    const updatedMessage = await this.dbService.message.update({
+      where: {
+        id: data.messageId,
+      },
+      data: {
+        content: data.messageBody,
+      },
+      include: messageInclude,
+    });
+
+    const chat = await this.dbService.chat.update({
+      where: { id: findMessage.chatId },
+      data: {
+        lastMessage: {
+          connect:
+            findChat.lastMessageId === data.messageId
+              ? { id: updatedMessage.id }
+              : { id: findChat.lastMessageId },
+        },
+      },
+      include: chatInclude,
+    });
+
+    return { chat, message: updatedMessage };
+  }
+
+  async deleteMessage(data: { messageId: string }, userId: string) {
+    await this.checkIfMessageBelongsToUser(userId, data.messageId);
+
+    const deletedMessage = await this.dbService.message.delete({
+      where: { id: data.messageId },
+    });
+
+    const newLastMessage = await this.dbService.message.findFirst({
+      where: { chatId: deletedMessage.chatId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const updatedChat = await this.dbService.chat.update({
+      where: { id: deletedMessage.chatId },
+      data: {
+        lastMessage: newLastMessage ? { connect: { id: newLastMessage.id } } : { disconnect: true },
+      },
+      include: chatInclude,
+    });
+
+    return { chat: updatedChat, message: deletedMessage };
+  }
+
+  async checkIfUserIsInChat(userId: string, chatId: string) {
+    const chat = await this.dbService.chat.findFirst({
+      where: {
+        AND: [{ id: chatId }, { members: { some: { id: userId } } }],
+      },
+      include: chatInclude,
+    });
+
+    if (!chat) {
+      throw new BadRequestException('Chat not found');
+    }
+
+    return chat;
+  }
+
+  async checkIfMessageBelongsToUser(userId: string, messageId: string) {
+    const message = await this.dbService.message.findFirst({
+      where: {
+        AND: [{ id: messageId }, { userBaseId: userId }],
+      },
+    });
+
+    if (!message) {
+      throw new BadRequestException('Message not found');
+    }
+
+    return message;
   }
 }

@@ -11,7 +11,6 @@ import { UsersModule } from 'src/user/user.module';
 import { EmailUsersService, UserService } from 'src/user/user.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { FollowModule } from 'src/follow/follow.module';
-import { WsJwtAuthGuard } from './strategies/ws.strategy';
 
 @Module({
   imports: [
@@ -31,14 +30,7 @@ import { WsJwtAuthGuard } from './strategies/ws.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    LocalStrategy,
-    JwtStrategy,
-    EmailUsersService,
-    UserService,
-    WsJwtAuthGuard,
-  ],
-  exports: [JwtModule, WsJwtAuthGuard],
+  providers: [AuthService, LocalStrategy, JwtStrategy, EmailUsersService, UserService],
+  exports: [JwtModule],
 })
 export class AuthModule {}
