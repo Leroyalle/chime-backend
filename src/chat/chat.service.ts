@@ -4,6 +4,7 @@ import { UserService } from 'src/user/user.service';
 import { Message } from './dto/message.dto';
 import { MessageTypeEnum } from './dto/message-type.enum';
 import { chatInclude, messageInclude } from './constants';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ChatService {
@@ -108,27 +109,44 @@ export class ChatService {
     return await this.checkIfUserIsInChat(userId, chatId);
   }
 
-  async getChatMessagesByChatId(userId: string, chatId: string, page: number, perPage: number) {
-    const messages = await this.messageDb.findMany({
-      where: {
-        chatId,
-      },
-      skip: (page - 1) * perPage,
-      take: perPage,
-      orderBy: {
-        createdAt: 'desc',
-      },
+  async getChatMessagesByChatId(
+    userId: string,
+    chatId: string,
+    parsedCursor: { id: string; createdAt: Date } | null,
+    take: number = 20,
+  ) {
+    await this.checkIfUserIsInChat(userId, chatId);
 
+    const where: Prisma.MessageWhereInput = { chatId };
+
+    if (parsedCursor) {
+      where.OR = [
+        { createdAt: { lt: parsedCursor.createdAt } },
+        {
+          AND: [{ createdAt: parsedCursor.createdAt }, { id: { lt: parsedCursor.id } }],
+        },
+      ];
+    }
+
+    const messages = await this.messageDb.findMany({
+      where,
+      take: take + 1,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: messageInclude,
     });
 
-    const totalItems = await this.messageDb.count({ where: { chatId } });
-    const totalPages = Math.ceil(totalItems / perPage);
+    const hasNextPage = messages.length > take;
+    const trimmedMessages = hasNextPage ? messages.slice(0, -1) : messages;
+
+    const lastMessage = trimmedMessages[trimmedMessages.length - 1];
+    const nextCursor = lastMessage
+      ? `${lastMessage.createdAt.toISOString()}|${lastMessage.id}`
+      : null;
 
     return {
-      data: messages,
-      currentPage: page,
-      totalPages,
+      data: trimmedMessages,
+      nextCursor,
+      hasNextPage,
     };
   }
 
@@ -263,6 +281,8 @@ export class ChatService {
     const deletedMessage = await this.dbService.message.delete({
       where: { id: data.messageId },
     });
+
+    console.log('DELETED_MESSAGE:', deletedMessage);
 
     const newLastMessage = await this.dbService.message.findFirst({
       where: { chatId: deletedMessage.chatId },

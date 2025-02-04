@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ChatService } from './chat.service';
 import { UserId } from 'src/userid.decorator';
@@ -27,9 +27,36 @@ export class ChatController {
   async getChatMessagesByChatId(
     @UserId() userId: string,
     @Param('id') chatId: string,
-    @Query('page') page: number = 1,
-    @Query('perPage') perPage: number = 10,
+    @Query('cursor') cursor?: string,
+    @Query('take') take: number = 20,
   ) {
-    return this.chatService.getChatMessagesByChatId(userId, chatId, +page, +perPage);
+    let parsedCursor: {
+      id: string;
+      createdAt: Date;
+    } = null;
+
+    if (cursor) {
+      try {
+        const [dateString, cursorId] = decodeURIComponent(cursor).split('|');
+        const date = new Date(dateString);
+
+        if (isNaN(date.getTime())) {
+          throw new Error('Invalid date format');
+        }
+
+        parsedCursor = { id: cursorId, createdAt: date };
+      } catch (error) {
+        throw new BadRequestException(
+          'Invalid cursor format. Use ISO date optionally with ID separated by |',
+        );
+      }
+    }
+
+    return this.chatService.getChatMessagesByChatId(
+      userId,
+      chatId,
+      parsedCursor,
+      Math.min(+take, 50),
+    );
   }
 }
