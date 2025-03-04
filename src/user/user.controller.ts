@@ -33,9 +33,7 @@ export class UserController {
     @UserId() userId: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    const avatarUrl = file
-      ? `${Math.random().toString(36).substring(2, 10)}-${file.originalname}`
-      : undefined;
+    const avatarUrl = file ? file.filename : undefined;
     return await this.usersService.update(userId, updateUserDto, avatarUrl);
   }
 

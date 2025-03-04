@@ -164,8 +164,6 @@ model Follows {
   following   UserBase @relation("following", fields: [followingId], references: [id])
 }
 
-// _______________________
-
 model Chat {
   id String @id @default(uuid())
 
