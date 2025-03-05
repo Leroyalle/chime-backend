@@ -31,11 +31,9 @@ export class PostController {
     if (!body.content) throw new BadRequestException('Text must be provided');
     if (files && files.length > 4) throw new BadRequestException('Too many images');
 
-    const imagePaths = files.map(
-      (file) => `${Math.random().toString(36).substring(2, 10)}-${file.originalname}`,
-    );
+    const imagePaths = files.map((file) => file.filename);
 
-    return this.postService.createPost(
+    return await this.postService.createPost(
       body.content,
       userId,
       imagePaths,

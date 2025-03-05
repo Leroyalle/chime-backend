@@ -12,8 +12,10 @@ import { diskStorage } from 'multer';
       storage: diskStorage({
         destination: './uploads',
         filename: (_, file, callback) => {
-          const originalName = file.originalname.replace(/\s+/g, '_');
-          callback(null, `${originalName}`);
+          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          const fileExtension = file.originalname.split('.').pop();
+          const newFilename = `${uniqueSuffix}.${fileExtension}`;
+          callback(null, newFilename);
         },
       }),
     }),
