@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -18,6 +19,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @Controller('user')
 export class UserController {
   constructor(private readonly usersService: UserService) {}
+
+  @Get()
+  async findAll(@Query('query') query: string) {
+    return await this.usersService.findAll(query);
+  }
 
   @Get('me')
   async current(@UserId() userId: string) {

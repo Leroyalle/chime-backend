@@ -80,8 +80,14 @@ export class UserService {
     return await this.findUserById(emailUser.userBaseId);
   }
 
-  async findAll() {
-    const users = await this.userBaseDb.findMany({
+  async findAll(query?: string) {
+    return await this.userBaseDb.findMany({
+      where: {
+        name: {
+          contains: query,
+          mode: 'insensitive',
+        },
+      },
       include: {
         EmailUser: true,
         TelegramUser: true,
@@ -90,8 +96,6 @@ export class UserService {
         following: true,
       },
     });
-
-    return users;
   }
 
   async update(userId: string, updateUserDto: UpdateUserDto, avatarUrl: string | undefined) {
